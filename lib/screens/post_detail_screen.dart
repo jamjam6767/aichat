@@ -12,6 +12,7 @@ import '../services/post_service.dart';
 import '../services/comment_service.dart';
 import '../providers/auth_provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../widgets/country_flag_circle.dart';
 
 class PostDetailScreen extends StatefulWidget {
   final Post post;
@@ -599,21 +600,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                 ),
                                 const SizedBox(width: 8),
                                 // 국적 정보 표시
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.shade50,
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: Colors.blue.shade200),
-                                  ),
-                                  child: Text(
-                                    _currentPost.authorNationality,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.blue.shade700,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
+                                CountryFlagCircle(
+                                  nationality: _currentPost.authorNationality,
+                                  size: 22,
                                 ),
                               ],
                             ),

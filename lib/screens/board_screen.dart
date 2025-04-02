@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/post.dart';
 import '../services/post_service.dart';
-import '../widgets/web_preview_banner.dart';
+import '../widgets/country_flag_circle.dart';
 import 'create_post_screen.dart';
 import 'post_detail_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -40,7 +40,7 @@ class _BoardScreenState extends State<BoardScreen> {
     {
       'title': 'Office of International Affairs',
       'url': 'https://global.hanyang.ac.kr/?intro_non', 
-      'color': Colors.purple,
+      'color': Colors.blue,
       'icon': Icons.language,
       'domain': 'hanyang.ac.kr',
     },
@@ -51,6 +51,14 @@ class _BoardScreenState extends State<BoardScreen> {
     super.initState();
     // 배너 자동 슬라이드 설정
     _startAutoSlide();
+    
+    // 메모리 최적화를 위한 GC 힌트
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        // 화면이 그려진 후 약간의 딜레이를 두고 초기화
+        Future.delayed(const Duration(milliseconds: 200), () {});
+      }
+    });
   }
 
   @override
@@ -59,20 +67,26 @@ class _BoardScreenState extends State<BoardScreen> {
     _currentBannerIndex.dispose();
     _bannerController.dispose();
     _searchController.dispose();
+    // 메모리 힌트 추가
+    WidgetsBinding.instance.addPostFrameCallback((_) {});
     super.dispose();
   }
 
   // 배너 자동 슬라이드 기능 수정
   void _startAutoSlide() {
-    Future.delayed(const Duration(seconds: 5), () {
+    Future.delayed(const Duration(seconds: 10), () {
       if (mounted) {
         final nextPage = (_currentBannerIndex.value + 1) % _banners.length;
         _bannerController.animateToPage(
           nextPage,
-          duration: const Duration(milliseconds: 500),
+          duration: const Duration(milliseconds: 400),
           curve: Curves.easeInOut,
-        );
-        _startAutoSlide();
+        ).then((_) {
+          // 애니메이션 완료 후 다음 슬라이드 예약
+          if (mounted) {
+            _startAutoSlide();
+          }
+        });
       }
     });
   }
@@ -107,12 +121,12 @@ class _BoardScreenState extends State<BoardScreen> {
   Color _getAvatarColor(String text) {
     if (text.isEmpty) return Colors.grey;
     final colors = [
+      Colors.blue.shade500,
+      Colors.blue.shade600,
       Colors.blue.shade700,
-      Colors.purple.shade700,
-      Colors.green.shade700,
-      Colors.orange.shade700,
-      Colors.pink.shade700,
-      Colors.teal.shade700,
+      Colors.blue.shade800,
+      Colors.indigo.shade500,
+      Colors.indigo.shade600,
     ];
     
     // 이름의 첫 글자 아스키 코드를 기준으로 색상 결정
@@ -153,6 +167,7 @@ class _BoardScreenState extends State<BoardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFFAFCFF), // 배경색 설정
       body: Column(
         children: [
           // 검색창 추가
@@ -165,7 +180,7 @@ class _BoardScreenState extends State<BoardScreen> {
                 hintText: '게시글 검색',
                 hintStyle: TextStyle(color: Colors.grey[400]),
                 filled: true,
-                fillColor: Colors.grey[100],
+                fillColor: Colors.grey[200], 
                 contentPadding: const EdgeInsets.symmetric(vertical: 0),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20),
@@ -202,7 +217,7 @@ class _BoardScreenState extends State<BoardScreen> {
           
           // 광고 배너 (슬라이드 박스)
           SizedBox(
-            height: 220,
+            height: 180,
             child: PageView.builder(
               controller: _bannerController,
               itemCount: _banners.length,
@@ -211,19 +226,76 @@ class _BoardScreenState extends State<BoardScreen> {
                 _currentBannerIndex.value = index;
               },
               // 캐싱 설정
-              allowImplicitScrolling: true,
-              physics: const AlwaysScrollableScrollPhysics(),
+              allowImplicitScrolling: false,
+              physics: const PageScrollPhysics(),
               padEnds: false,
               pageSnapping: true,
               itemBuilder: (context, index) {
                 final banner = _banners[index];
-                return WebPreviewBanner(
-                  title: banner['title'],
-                  url: banner['url'],
-                  color: banner['color'],
-                  icon: banner['icon'],
-                  domain: banner['domain'],
-                  onTap: () => _launchURL(banner['url']),
+                // WebPreviewBanner 대신 일반 배너로 변경
+                return Container(
+                  margin: const EdgeInsets.all(8.0), 
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12.0),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withAlpha(20),
+                        blurRadius: 4.0,
+                        spreadRadius: 1.0,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12.0),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => _launchURL(banner['url']),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                banner['color'].withOpacity(0.1),
+                                banner['color'].withOpacity(0.2),
+                              ],
+                            ),
+                          ),
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  banner['icon'],
+                                  size: 56,
+                                  color: banner['color'],
+                                ),
+                                const SizedBox(height: 20),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                                  child: Text(
+                                    banner['title'],
+                                    style: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey.shade700,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 );
               },
             ),
@@ -288,7 +360,7 @@ class _BoardScreenState extends State<BoardScreen> {
             child: StreamBuilder<List<Post>>(
               stream: _postService.getAllPosts(),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+                if (snapshot.connectionState == ConnectionState.waiting && snapshot.data == null) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
@@ -306,8 +378,7 @@ class _BoardScreenState extends State<BoardScreen> {
                     : allPosts
                         .where((post) =>
                             post.title.toLowerCase().contains(_searchQuery) ||
-                            post.content.toLowerCase().contains(_searchQuery) ||
-                            post.author.toLowerCase().contains(_searchQuery))
+                            post.content.toLowerCase().contains(_searchQuery))
                         .toList();
                 if (posts.isEmpty) {
                   return Center(
@@ -356,9 +427,11 @@ class _BoardScreenState extends State<BoardScreen> {
                       final post = posts[index];
                       return Card(
                         elevation: 1,
-                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                        color: const Color(0xFFF5F8FF), 
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(color: Colors.blue.shade50, width: 0.5),
                         ),
                         child: InkWell(
                           borderRadius: BorderRadius.circular(12),
@@ -377,7 +450,7 @@ class _BoardScreenState extends State<BoardScreen> {
                             }
                           },
                           child: Padding(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(12),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -388,102 +461,49 @@ class _BoardScreenState extends State<BoardScreen> {
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                     letterSpacing: -0.2,
+                                    color: Color(0xFF2C3E50), 
                                   ),
                                 ),
-                                const SizedBox(height: 8),
-                                
-                                // 이미지 표시
+
+                                // 이미지 섹션
                                 if (post.imageUrls.isNotEmpty)
-                                  Container(
-                                    height: 120,
-                                    margin: const EdgeInsets.only(top: 8),
-                                    child: ListView.builder(
-                                      scrollDirection: Axis.horizontal,
-                                      itemCount: post.imageUrls.length > 3 ? 3 : post.imageUrls.length,
-                                      itemBuilder: (context, index) {
-                                        return Container(
-                                          margin: const EdgeInsets.only(right: 8),
-                                          width: 100,
-                                          child: Stack(
-                                            fit: StackFit.expand,
-                                            children: [
-                                              ClipRRect(
-                                                borderRadius: BorderRadius.circular(8),
+                                  SizedBox(
+                                    height: 100,
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(top: 8.0),
+                                      child: ListView.builder(
+                                        scrollDirection: Axis.horizontal,
+                                        itemCount: post.imageUrls.length > 3 ? 3 : post.imageUrls.length,
+                                        itemBuilder: (context, index) {
+                                          return Container(
+                                            margin: const EdgeInsets.only(right: 8),
+                                            width: 100,
+                                            child: ClipRRect(
+                                              borderRadius: BorderRadius.circular(8),
+                                              child: Container(
+                                                decoration: BoxDecoration(
+                                                  border: Border.all(color: Colors.blue.shade100, width: 1),
+                                                ),
                                                 child: CachedNetworkImage(
                                                   imageUrl: post.imageUrls[index],
                                                   fit: BoxFit.cover,
-                                                  placeholder: (context, url) => Container(
-                                                    color: Colors.grey[200],
-                                                    child: const Center(
-                                                      child: SizedBox(
-                                                        width: 20,
-                                                        height: 20,
-                                                        child: CircularProgressIndicator(strokeWidth: 2),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  errorWidget: (context, url, error) {
-                                                    print('이미지 목록 로드 오류: $error (URL: $url)');
-                                                    return Container(
-                                                      color: Colors.grey[200],
-                                                      child: Column(
-                                                        mainAxisAlignment: MainAxisAlignment.center,
-                                                        children: [
-                                                          Icon(Icons.broken_image, color: Colors.grey[600]),
-                                                          const SizedBox(height: 4),
-                                                          Text(
-                                                            '이미지 오류',
-                                                            style: TextStyle(color: Colors.grey[600], fontSize: 10),
-                                                            textAlign: TextAlign.center,
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    );
-                                                  },
+                                                  errorWidget: (context, url, error) =>
+                                                      Icon(Icons.broken_image),
+                                                  memCacheHeight: 200,
+                                                  memCacheWidth: 200,
                                                 ),
                                               ),
-                                              // 더 많은 이미지가 있음을 표시
-                                              if (index == 2 && post.imageUrls.length > 3)
-                                                Container(
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.black.withOpacity(0.5),
-                                                    borderRadius: BorderRadius.circular(8),
-                                                  ),
-                                                  child: Center(
-                                                    child: Text(
-                                                      '+${post.imageUrls.length - 3}',
-                                                      style: const TextStyle(
-                                                        color: Colors.white,
-                                                        fontWeight: FontWeight.bold,
-                                                        fontSize: 18,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                        );
-                                      },
+                                            ),
+                                          );
+                                        },
+                                      ),
                                     ),
                                   ),
                                 
-                                // 내용 미리보기
-                                Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
-                                  child: Text(
-                                    post.getPreviewContent(),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.grey[800],
-                                      height: 1.4,
-                                    ),
-                                  ),
-                                ),
+                                const SizedBox(height: 8),
                                 
                                 // 구분선
-                                Divider(color: Colors.grey[200]),
+                                Divider(color: Colors.blue.shade100),
                                 
                                 // 하단 메타 정보 영역
                                 Row(
@@ -509,26 +529,15 @@ class _BoardScreenState extends State<BoardScreen> {
                                       style: const TextStyle(
                                         fontWeight: FontWeight.w500,
                                         fontSize: 14,
+                                        color: Color(0xFF3A5270), 
                                       ),
                                     ),
                                     
                                     // 국적 표시
                                     const SizedBox(width: 4),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                      decoration: BoxDecoration(
-                                        color: Colors.blue.shade50,
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: Colors.blue.shade200, width: 0.5),
-                                      ),
-                                      child: Text(
-                                        post.authorNationality,
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.blue.shade700,
-                                        ),
-                                      ),
+                                    CountryFlagCircle(
+                                      nationality: post.authorNationality,
+                                      size: 20,
                                     ),
                                     
                                     // 시간 구분점
@@ -546,7 +555,7 @@ class _BoardScreenState extends State<BoardScreen> {
                                     Text(
                                       post.getFormattedTime(),
                                       style: TextStyle(
-                                        color: Colors.grey[600],
+                                        color: Colors.blue.shade700,
                                         fontSize: 14,
                                       ),
                                     ),
@@ -558,8 +567,8 @@ class _BoardScreenState extends State<BoardScreen> {
                                       _buildCountBadge(
                                         Icons.favorite,
                                         post.likes,
-                                        Colors.red.shade400,
-                                        Colors.red.shade50,
+                                        Colors.blue.shade400,
+                                        Colors.blue.shade50,
                                       ),
                                       
                                     // 댓글 개수 표시

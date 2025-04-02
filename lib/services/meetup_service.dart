@@ -276,19 +276,15 @@ class MeetupService {
               .map((doc) {
                 final data = doc.data();
                 
-                // 검색어와 일치하는지 확인 (제목, 내용, 위치 등)
+                // 검색어와 일치하는지 확인 (제목, 내용, 위치만 사용)
                 final title = (data['title'] as String? ?? '').toLowerCase();
                 final description = (data['description'] as String? ?? '').toLowerCase();
                 final location = (data['location'] as String? ?? '').toLowerCase();
-                final category = (data['category'] as String? ?? '').toLowerCase();
-                final hostName = (data['hostNickname'] as String? ?? '').toLowerCase();
                 
-                // 어디든 검색어가 포함되어 있는지 확인
+                // 제목, 내용, 위치에서만 검색
                 if (title.contains(lowercaseQuery) || 
                     description.contains(lowercaseQuery) || 
-                    location.contains(lowercaseQuery) ||
-                    category.contains(lowercaseQuery) ||
-                    hostName.contains(lowercaseQuery)) {
+                    location.contains(lowercaseQuery)) {
                   
                   // Timestamp에서 DateTime으로 변환
                   DateTime meetupDate;

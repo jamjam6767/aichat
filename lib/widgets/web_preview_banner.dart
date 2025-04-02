@@ -38,7 +38,12 @@ class _WebPreviewBannerState extends State<WebPreviewBanner> with AutomaticKeepA
   @override
   void initState() {
     super.initState();
-    _initializeController();
+    // 지연 웹뷰 로드를 위해 약간의 딜레이 추가
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        _initializeController();
+      }
+    });
   }
 
   void _initializeController() {
@@ -160,6 +165,15 @@ class _WebPreviewBannerState extends State<WebPreviewBanner> with AutomaticKeepA
         if (el) el.style.display = 'none';
       });
     ''');
+  }
+
+  @override
+  void dispose() {
+    // 메모리 사용량을 줄이기 위해 필요하지 않은 경우 컨트롤러 해제
+    if (!_isInitialized) {
+      _cachedControllers.remove(widget.url);
+    }
+    super.dispose();
   }
 
   @override
