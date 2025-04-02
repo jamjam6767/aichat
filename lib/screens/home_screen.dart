@@ -40,6 +40,8 @@ class _MeetupHomePageState extends State<MeetupHomePage> with SingleTickerProvid
   // 요일별 모임 캐시 추가
   final Map<int, List<Meetup>> _meetupCache = {};
 
+  final Map<String, Map<int, List<Meetup>>> _categoryMeetupCache = {};
+
   @override
   void initState() {
     super.initState();
@@ -49,7 +51,7 @@ class _MeetupHomePageState extends State<MeetupHomePage> with SingleTickerProvid
 
     // 검색 컨트롤러에 리스너 추가
     _searchController.addListener(_onSearchChanged);
-    
+
     // 탭 변경 리스너 추가
     _tabController.addListener(_onTabChanged);
 
@@ -77,13 +79,14 @@ class _MeetupHomePageState extends State<MeetupHomePage> with SingleTickerProvid
         setState(() {
           _isTabChanging = true; // 탭 변경 중 플래그 설정
         });
-        
+
         // 약간의 지연 후 데이터 로드 (부드러운 전환을 위해)
         Future.delayed(const Duration(milliseconds: 150), () {
-          // 캐시에 해당 탭의 데이터가 있는지 확인
-          if (_meetupCache.containsKey(_tabController.index) && _selectedCategory == '전체') {
+          // 현재 선택된 카테고리와 탭에 대한 캐시가 있는지 확인
+          if (_categoryMeetupCache.containsKey(_selectedCategory) &&
+              _categoryMeetupCache[_selectedCategory]!.containsKey(_tabController.index)) {
             setState(() {
-              _filteredMeetups = _meetupCache[_tabController.index]!;
+              _filteredMeetups = _categoryMeetupCache[_selectedCategory]![_tabController.index]!;
               _isTabChanging = false;
               _isLoading = false;
             });
@@ -164,17 +167,18 @@ class _MeetupHomePageState extends State<MeetupHomePage> with SingleTickerProvid
 
     // 현재 선택된 탭(요일) 인덱스
     final currentTabIndex = _tabController.index;
-    
-    // 캐시에 해당 탭의 데이터가 있고 전체 카테고리인 경우 캐시 사용
-    if (_meetupCache.containsKey(currentTabIndex) && _selectedCategory == '전체' && _isTabChanging) {
+
+    // 카테고리 캐시에 해당 탭의 데이터가 있는 경우 캐시 사용
+    if (_categoryMeetupCache.containsKey(_selectedCategory) &&
+        _categoryMeetupCache[_selectedCategory]!.containsKey(currentTabIndex)) {
       setState(() {
-        _filteredMeetups = _meetupCache[currentTabIndex]!;
+        _filteredMeetups = _categoryMeetupCache[_selectedCategory]![currentTabIndex]!;
         _isTabChanging = false;
         _isLoading = false;
       });
       return;
     }
-    
+
     // 로딩 중이 아닌 경우만 로딩 상태 설정
     if (!_isTabChanging) {
       setState(() {
@@ -184,7 +188,7 @@ class _MeetupHomePageState extends State<MeetupHomePage> with SingleTickerProvid
 
     // 해당 요일에 해당하는 날짜 계산
     final selectedDate = _meetupService.getDayDate(currentTabIndex);
-    
+
     late Stream<List<Meetup>> meetupStream;
 
     if (_selectedCategory == '전체') {
@@ -211,30 +215,27 @@ class _MeetupHomePageState extends State<MeetupHomePage> with SingleTickerProvid
           _filteredMeetups = meetups;
           _isLoading = false;
           _isTabChanging = false;
-          
-          // 전체 카테고리인 경우 캐시에 저장
+
+          // 카테고리별 캐시에 저장
+          if (!_categoryMeetupCache.containsKey(_selectedCategory)) {
+            _categoryMeetupCache[_selectedCategory] = {};
+          }
+          _categoryMeetupCache[_selectedCategory]![currentTabIndex] = meetups;
+
+          // 전체 카테고리인 경우 일반 캐시에도 저장
           if (_selectedCategory == '전체') {
             _meetupCache[currentTabIndex] = meetups;
           }
         });
       }
-    }, onError: (error) {
-      if (mounted) {
-        setState(() {
-          _filteredMeetups = [];
-          _isLoading = false;
-          _isTabChanging = false;
-        });
-        print('모임 데이터 로드 중 오류 발생: $error');
-      }
-    });
+    }, /* ... */);
   }
 
   @override
   Widget build(BuildContext context) {
     // 현재 날짜 기준 일주일 날짜 계산 (오늘부터 6일 후까지)
     final List<DateTime> weekDates = _meetupService.getWeekDates();
-    
+
     // 선택된 요일의 날짜 문자열 미리 계산
     final selectedDayString = '${weekDates[_tabController.index].month}월 ${weekDates[_tabController.index].day}일';
 
@@ -337,7 +338,7 @@ class _MeetupHomePageState extends State<MeetupHomePage> with SingleTickerProvid
                   : _filteredMeetups.isEmpty
                       ? _buildEmptyState()
                       : ListView.builder(
-                          key: ValueKey<int>(_tabController.index),
+                          key: ValueKey<String>('${_selectedCategory}_${_tabController.index}'),
                           padding: const EdgeInsets.all(16),
                           itemCount: _filteredMeetups.length,
                           itemBuilder: (context, index) {
@@ -356,7 +357,7 @@ class _MeetupHomePageState extends State<MeetupHomePage> with SingleTickerProvid
                                     context: context,
                                     builder: (context) => MeetupDetailScreen(
                                       meetup: meetup,
-                                      meetupId: meetup.id, 
+                                      meetupId: meetup.id,
                                       onMeetupDeleted: () {
                                         _loadMeetups(); // 모임이 삭제되면 목록 새로고침
                                       },
@@ -417,7 +418,7 @@ class _MeetupHomePageState extends State<MeetupHomePage> with SingleTickerProvid
                                       Text(
                                         meetup.title,
                                         style: const TextStyle(
-                                          fontSize: 16, 
+                                          fontSize: 16,
                                           fontWeight: FontWeight.bold,
                                           letterSpacing: -0.5,
                                         ),
@@ -471,7 +472,7 @@ class _MeetupHomePageState extends State<MeetupHomePage> with SingleTickerProvid
                                               }
                                             },
                                             style: ElevatedButton.styleFrom(
-                                              backgroundColor: meetup.currentParticipants >= meetup.maxParticipants 
+                                              backgroundColor: meetup.currentParticipants >= meetup.maxParticipants
                                                   ? Colors.grey
                                                   : Colors.blue.shade600,
                                               foregroundColor: Colors.white,
@@ -479,7 +480,7 @@ class _MeetupHomePageState extends State<MeetupHomePage> with SingleTickerProvid
                                             ),
                                             child: Text(
                                               meetup.currentParticipants >= meetup.maxParticipants
-                                                  ? '가득 참'
+                                                  ? '마감'
                                                   : '참여',
                                             ),
                                           ),
@@ -625,7 +626,7 @@ class _MeetupHomePageState extends State<MeetupHomePage> with SingleTickerProvid
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // 검색창 추가
             Container(
               decoration: BoxDecoration(
@@ -663,9 +664,9 @@ class _MeetupHomePageState extends State<MeetupHomePage> with SingleTickerProvid
                 textInputAction: TextInputAction.search,
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // 카테고리 필터 칩
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -678,6 +679,8 @@ class _MeetupHomePageState extends State<MeetupHomePage> with SingleTickerProvid
                       onTap: () {
                         setState(() {
                           _selectedCategory = category;
+                          // 카테고리 변경 시 로딩 상태 즉시 설정
+                          _isLoading = true;
                         });
                         _loadMeetups(); // 카테고리 선택 시 모임 다시 로드
                       },
@@ -722,7 +725,7 @@ class _MeetupHomePageState extends State<MeetupHomePage> with SingleTickerProvid
   // 빈 상태 위젯 추가
   Widget _buildEmptyState() {
     return Center(
-      key: ValueKey<String>('empty-${_tabController.index}'),
+      key: ValueKey<String>('empty_${_selectedCategory}_${_tabController.index}'),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
