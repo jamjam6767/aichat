@@ -446,7 +446,7 @@ class _BoardScreenState extends State<BoardScreen> {
                                               if (index == 2 && post.imageUrls.length > 3)
                                                 Container(
                                                   decoration: BoxDecoration(
-                                                    color: Colors.black.withOpacity(0.5),
+                                                    color: Colors.black.withValues(alpha: 128),
                                                     borderRadius: BorderRadius.circular(8),
                                                   ),
                                                   child: Center(
