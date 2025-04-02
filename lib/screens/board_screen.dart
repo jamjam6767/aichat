@@ -32,10 +32,10 @@ class _BoardScreenState extends State<BoardScreen> {
   final List<Map<String, dynamic>> _banners = [
     {
       'title': 'MCPC',
-      'url': 'https://www.google.com/', 
+      'url': 'https://swift-graphs-363644.framer.app/',
       'color': Colors.blue,
       'icon': Icons.computer,
-      'domain': 'google.com',
+      'domain': 'MCPC.app',
     },
     {
       'title': 'Office of International Affairs',
