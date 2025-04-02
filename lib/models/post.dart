@@ -10,23 +10,49 @@ class Post {
   final String title;
   final String content;
   final String author;
+  final String authorNationality; // 추가: 작성자 국적
   final DateTime createdAt;
   final String userId;
   final int commentCount;
   final int likes;           // 좋아요 수
   final List<String> likedBy; // 좋아요 누른 사용자 ID 목록
+  final List<String> imageUrls; // 이미지 URL 목록
 
   Post({
     required this.id,
     required this.title,
     required this.content,
     required this.author,
+    this.authorNationality = '', // 국적 정보 (기본값은 빈 문자열)
     required this.createdAt,
     required this.userId,
     this.commentCount = 0,
     this.likes = 0,
     this.likedBy = const [],
-  });
+    List<String> imageUrls = const [],
+  }) : imageUrls = _fixImageUrls(imageUrls);
+
+  // Firebase Storage URL 수정 정적 메서드
+  static List<String> _fixImageUrls(List<String> urls) {
+    if (urls.isEmpty) return urls;
+    
+    return urls.map((url) {
+      // URL에 alt=media 파라미터 추가
+      if (url.contains('?') && !url.contains('alt=media')) {
+        return '$url&alt=media';
+      } else if (!url.contains('?') && !url.contains('alt=media')) {
+        return '$url?alt=media';
+      }
+      return url;
+    }).toList();
+  }
+
+  // 모델 디버깅을 위한 문자열 표현
+  @override
+  String toString() {
+    return 'Post(id: $id, title: $title, author: $author, '
+        'authorNationality: $authorNationality, userId: $userId, likes: $likes)';
+  }
 
   // 게시글 생성 시간을 표시 형식으로 변환
   String getFormattedTime() {
@@ -66,22 +92,26 @@ class Post {
     String? title,
     String? content,
     String? author,
+    String? authorNationality,
     DateTime? createdAt,
     String? userId,
     int? commentCount,
     int? likes,
     List<String>? likedBy,
+    List<String>? imageUrls,
   }) {
     return Post(
       id: id ?? this.id,
       title: title ?? this.title,
       content: content ?? this.content,
       author: author ?? this.author,
+      authorNationality: authorNationality ?? this.authorNationality,
       createdAt: createdAt ?? this.createdAt,
       userId: userId ?? this.userId,
       commentCount: commentCount ?? this.commentCount,
       likes: likes ?? this.likes,
       likedBy: likedBy ?? this.likedBy,
+      imageUrls: imageUrls ?? this.imageUrls,
     );
   }
 }

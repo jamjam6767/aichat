@@ -15,6 +15,7 @@ import '../services/user_stats_service.dart';
 import 'user_posts_screen.dart';
 //import 'profile_edit_screen.dart';
 import 'notification_settings_screen.dart';
+import 'account_settings_screen.dart';
 
 class MyPageScreen extends StatefulWidget {
   const MyPageScreen({Key? key}) : super(key: key);
@@ -247,9 +248,14 @@ class _MyPageScreenState extends State<MyPageScreen> {
               context,
               '계정 설정',
               Icons.settings,
-                  () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('준비 중인 기능입니다.')),
-              ),
+              () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AccountSettingsScreen(),
+                  ),
+                );
+              },
             ),
 
             const Divider(),

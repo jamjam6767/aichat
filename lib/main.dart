@@ -3,25 +3,18 @@
 //프로바이더 설정
 // 앱 테마 및 라우팅 설정
 
-
-
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'screens/main_screen.dart';
 import 'providers/auth_provider.dart';
+import 'providers/settings_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/nickname_setup_screen.dart';
 import 'firebase_options.dart';
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-
-
-
-// main 함수 내부
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -30,6 +23,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => SettingsProvider()..init()),
       ],
       child: const MeetupApp(),
     ),
@@ -41,12 +35,14 @@ class MeetupApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final settingsProvider = Provider.of<SettingsProvider>(context);
+    
     return MaterialApp(
       title: 'David C.',
       theme: ThemeData(
         primarySwatch: Colors.blue,
         scaffoldBackgroundColor: Colors.white,
-        fontFamily: 'Roboto',
+        fontFamily: 'Pretendard',
       ),
       home: Consumer<AuthProvider>(
         builder: (context, authProvider, _) {

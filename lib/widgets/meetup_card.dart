@@ -28,6 +28,21 @@ class MeetupCard extends StatelessWidget {
     return isFull ? AppConstants.FULL : AppConstants.JOIN;
   }
 
+  Color _getCategoryColor(String category) {
+    switch (category) {
+      case '스터디':
+        return Colors.blue.shade700;
+      case '식사':
+        return Colors.orange.shade700;
+      case '취미':
+        return Colors.green.shade700;
+      case '문화':
+        return Colors.purple.shade700;
+      default:
+        return Colors.grey.shade700;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final status = _getStatusButton();
@@ -48,76 +63,152 @@ class MeetupCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 5,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
           child: Row(
             children: [
-              // 시간 컬럼
-              SizedBox(
-                width: 50,
-                child: Text(
-                  meetup.time,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+              // 시간 컬럼 - 원형 시간 표시로 개선
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.blue.shade200, width: 2),
+                ),
+                child: Center(
+                  child: Text(
+                    meetup.time.split('~')[0].trim(), // 시작 시간만 표시
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue.shade700,
+                    ),
                   ),
                 ),
               ),
+              const SizedBox(width: 16),
 
               // 모임 내용 컬럼
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // 모임 제목
                     Text(
                       meetup.title,
                       style: const TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
+                    
+                    // 모임 위치
                     Row(
                       children: [
-                        Icon(Icons.person, size: 14, color: Colors.blue),
-                        Text(
-                          ' ${meetup.currentParticipants}',
-                          style: TextStyle(color: Colors.blue),
+                        Icon(Icons.location_on, size: 14, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            meetup.location,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[600],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 8),
+                    
+                    // 참가자 정보
+                    Row(
+                      children: [
+                        Icon(Icons.person, size: 14, color: Colors.blue.shade600),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${meetup.currentParticipants}/${meetup.maxParticipants}명',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.blue.shade700,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        
+                        // 주최자 정보
+                        Icon(Icons.star, size: 14, color: Colors.amber[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          meetup.host,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[700],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    
+                    Container(
+                      margin: const EdgeInsets.only(top: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: _getCategoryColor(meetup.category).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: _getCategoryColor(meetup.category).withOpacity(0.5),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        meetup.category,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: _getCategoryColor(meetup.category),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
 
-              // 참여 버튼
               SizedBox(
-                width: 60,
-                child: GestureDetector(
-                  onTap: isFull ? null : () {
+                width: 70,
+                child: ElevatedButton(
+                  onPressed: isFull ? null : () {
                     onJoinMeetup(meetup);
-                    // 신청 완료 메시지 표시
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('${meetup.title}${AppConstants.JOINED_MEETUP}'),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
                   },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-                    decoration: BoxDecoration(
-                      color: isFull ? Colors.grey[200] : Colors.red,
-                      borderRadius: BorderRadius.circular(4),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isFull ? Colors.grey[300] : Colors.blue.shade600,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Center(
-                      child: Text(
-                        status,
-                        style: TextStyle(
-                          color: isFull ? Colors.black : Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    status,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
                     ),
                   ),
                 ),

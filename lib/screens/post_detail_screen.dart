@@ -11,6 +11,7 @@ import '../models/comment.dart';
 import '../services/post_service.dart';
 import '../services/comment_service.dart';
 import '../providers/auth_provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class PostDetailScreen extends StatefulWidget {
   final Post post;
@@ -41,6 +42,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     _currentPost = widget.post;
     _checkIfUserIsAuthor();
     _checkIfUserLikedPost();
+    // 디버그용: 이미지 URL 확인
+    _logImageUrls();
   }
 
   @override
@@ -320,27 +323,30 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     final isCommentAuthor = authProvider.user?.uid == comment.userId;
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 프로필 이미지
           CircleAvatar(
-            radius: 20,
-            backgroundColor: Colors.grey[200],
+            radius: 18,
+            backgroundColor: comment.authorPhotoUrl.isEmpty
+                ? _getAvatarColor(comment.authorNickname)
+                : Colors.grey[200],
             backgroundImage: comment.authorPhotoUrl.isNotEmpty
                 ? NetworkImage(comment.authorPhotoUrl)
                 : null,
             child: comment.authorPhotoUrl.isEmpty
                 ? Text(
-              comment.authorNickname.isNotEmpty
-                  ? comment.authorNickname[0].toUpperCase()
-                  : '?',
-              style: const TextStyle(
-                color: Colors.black54,
-                fontWeight: FontWeight.bold,
-              ),
-            )
+                    comment.authorNickname.isNotEmpty
+                        ? comment.authorNickname[0].toUpperCase()
+                        : '?',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  )
                 : null,
           ),
           const SizedBox(width: 12),
@@ -350,6 +356,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // 헤더 (닉네임 + 시간)
                 Row(
                   children: [
                     // 닉네임
@@ -357,25 +364,40 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                       comment.authorNickname,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                        fontSize: 15,
                       ),
                     ),
                     const SizedBox(width: 8),
                     // 작성 시간
-                    Text(
-                      _formatNotificationTime(comment.createdAt),
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        _formatNotificationTime(comment.createdAt),
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 11,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                // 댓글 내용
-                Text(
-                  comment.content,
-                  style: const TextStyle(fontSize: 14),
+                const SizedBox(height: 6),
+                
+                // 댓글 내용 - 간격과 스타일 개선
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  child: Text(
+                    comment.content,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      height: 1.4,
+                      color: Color(0xFF444444),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -383,11 +405,18 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
           // 삭제 버튼 (댓글 작성자만 볼 수 있음)
           if (isCommentAuthor)
-            IconButton(
-              icon: const Icon(Icons.delete_outline, size: 18),
-              color: Colors.red[300],
-              onPressed: () => _deleteComment(comment.id),
-              tooltip: '댓글 삭제',
+            Container(
+              margin: const EdgeInsets.only(left: 4),
+              child: IconButton(
+                icon: const Icon(Icons.delete_outline, size: 20),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.red.shade50,
+                  padding: const EdgeInsets.all(8),
+                ),
+                color: Colors.red[400],
+                onPressed: () => _deleteComment(comment.id),
+                tooltip: '댓글 삭제',
+              ),
             ),
         ],
       ),
@@ -407,6 +436,75 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       return '${difference.inMinutes}분 전';
     } else {
       return '방금 전';
+    }
+  }
+
+  // 디버그용: 이미지 URL 로깅
+  void _logImageUrls() {
+    print('게시글 ID: ${_currentPost.id}');
+    print('이미지 URL 개수: ${_currentPost.imageUrls.length}');
+    for (int i = 0; i < _currentPost.imageUrls.length; i++) {
+      print('이미지 URL $i: ${_currentPost.imageUrls[i]}');
+    }
+    _fixImageUrls();
+  }
+
+  // 이미지 URL 수정 시도
+  void _fixImageUrls() {
+    if (_currentPost.imageUrls.isEmpty) return;
+
+    final fixedUrls = <String>[];
+    for (final url in _currentPost.imageUrls) {
+      String fixedUrl = url;
+
+      // URL이 '&' 없이 '?' 포함하면 alt=media 파라미터 추가
+      if (url.contains('?') && !url.contains('&') && !url.contains('alt=media')) {
+        fixedUrl = '$url&alt=media';
+        print('URL 수정 1: $url -> $fixedUrl');
+      } 
+      // URL이 '?' 없으면 alt=media 파라미터 추가
+      else if (!url.contains('?')) {
+        fixedUrl = '$url?alt=media';
+        print('URL 수정 2: $url -> $fixedUrl');
+      }
+
+      // Firebase Storage URL을 직접적인 storage.googleapis.com 형식으로 변경 시도
+      if (url.contains('firebasestorage.app')) {
+        // firebasestorage.app를 storage.googleapis.com으로 변경
+        final uri = Uri.parse(url);
+        final String bucket = uri.host.split('.')[0];
+        final String path = uri.path;
+        final String query = uri.query.isNotEmpty ? '?${uri.query}' : '?alt=media';
+
+        final String directUrl = 'https://storage.googleapis.com/$bucket$path$query';
+        fixedUrl = directUrl;
+        print('URL 변환: $url -> $directUrl');
+      }
+
+      fixedUrls.add(fixedUrl);
+    }
+
+    // 수정된 URL로 교체
+    setState(() {
+      _currentPost = Post(
+        id: _currentPost.id,
+        title: _currentPost.title,
+        content: _currentPost.content, 
+        author: _currentPost.author,
+        authorNationality: _currentPost.authorNationality,
+        createdAt: _currentPost.createdAt,
+        userId: _currentPost.userId,
+        commentCount: _currentPost.commentCount,
+        likes: _currentPost.likes,
+        likedBy: _currentPost.likedBy,
+        imageUrls: fixedUrls,
+      );
+    });
+
+    // 수정된 URL 확인
+    print('수정된 이미지 URL 개수: ${_currentPost.imageUrls.length}');
+    for (int i = 0; i < _currentPost.imageUrls.length; i++) {
+      print('수정된 이미지 URL $i: ${_currentPost.imageUrls[i]}');
     }
   }
 
@@ -448,43 +546,224 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 게시글 제목 및 작성자 정보
-                  Text(
-                    _currentPost.title,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
+                  // 게시글 제목
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 20),
+                    child: Text(
+                      _currentPost.title,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: -0.5,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Text(
-                        _currentPost.author,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.blue[700],
-                          fontWeight: FontWeight.w500,
+                  
+                  // 작성자 정보 영역
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 16),
+                        // 작성자 아바타
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundColor: _getAvatarColor(_currentPost.author),
+                          child: Text(
+                            _currentPost.author.isNotEmpty 
+                              ? _currentPost.author[0].toUpperCase() 
+                              : '?',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _currentPost.getFormattedTime(),
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
+                        const SizedBox(width: 12),
+                        // 작성자 정보
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  _currentPost.author,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                // 국적 정보 표시
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.shade50,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: Colors.blue.shade200),
+                                  ),
+                                  child: Text(
+                                    _currentPost.authorNationality,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.blue.shade700,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _currentPost.getFormattedTime(),
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                  const Divider(height: 32),
+                  const SizedBox(height: 24),
+
+                  // 게시글 이미지
+                  if (_currentPost.imageUrls.isNotEmpty)
+                    Container(
+                      height: 200,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _currentPost.imageUrls.length,
+                        itemBuilder: (context, index) {
+                          final imageUrl = _currentPost.imageUrls[index];
+                          print('이미지 표시 시도: $imageUrl');
+                          print('이미지 번호: $index, URL 길이: ${imageUrl.length}');
+                          
+                          return GestureDetector(
+                            onTap: () {
+                              // 이미지 전체 화면으로 보기
+                              showDialog(
+                                context: context,
+                                builder: (context) => Dialog(
+                                  insetPadding: const EdgeInsets.all(8),
+                                  child: InteractiveViewer(
+                                    panEnabled: true,
+                                    boundaryMargin: const EdgeInsets.all(20),
+                                    minScale: 0.5,
+                                    maxScale: 3.0,
+                                    child: Image.network(
+                                      imageUrl,
+                                      fit: BoxFit.contain,
+                                      headers: {
+                                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36',
+                                        'Accept': 'image/*',
+                                      },
+                                      loadingBuilder: (context, child, loadingProgress) {
+                                        if (loadingProgress == null) return child;
+                                        return Center(
+                                          child: CircularProgressIndicator(
+                                            value: loadingProgress.expectedTotalBytes != null 
+                                                ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                                : null,
+                                          ),
+                                        );
+                                      },
+                                      errorBuilder: (context, error, stackTrace) {
+                                        print('이미지 로드 오류 (Image.network): $error');
+                                        print('스택트레이스: $stackTrace');
+                                        return Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.error, color: Colors.red),
+                                            const SizedBox(height: 8),
+                                            Text('이미지 로드 실패', style: TextStyle(color: Colors.red)),
+                                            const SizedBox(height: 4),
+                                            Padding(
+                                              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                              child: Text(
+                                                '오류: ${error.toString().length > 50 ? error.toString().substring(0, 50) + '...' : error.toString()}',
+                                                style: const TextStyle(fontSize: 12, color: Colors.red),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.only(right: 8),
+                              width: 200,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  imageUrl,
+                                  fit: BoxFit.cover,
+                                  headers: {
+                                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36',
+                                    'Accept': 'image/*',
+                                  },
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    print('이미지 로딩 중: $imageUrl');
+                                    if (loadingProgress != null) {
+                                      print('로딩 진행률: ${loadingProgress.cumulativeBytesLoaded} / ${loadingProgress.expectedTotalBytes ?? 'unknown'}');
+                                    }
+                                    if (loadingProgress == null) return child;
+                                    return Center(
+                                      child: CircularProgressIndicator(
+                                        value: loadingProgress.expectedTotalBytes != null 
+                                            ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                            : null,
+                                      ),
+                                    );
+                                  },
+                                  errorBuilder: (context, error, stackTrace) {
+                                    print('썸네일 로드 오류 (Image.network): $imageUrl - $error');
+                                    print('스택트레이스:\n$stackTrace');
+                                    return Container(
+                                      color: Colors.grey.shade200,
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.broken_image, color: Colors.grey[600]),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            '이미지 오류: ${error.toString().length > 20 ? error.toString().substring(0, 20) + '...' : error.toString()}',
+                                            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  const SizedBox(height: 16),
 
                   // 게시글 본문
-                  Text(
-                    _currentPost.content,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      height: 1.5,
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      _currentPost.content,
+                      style: const TextStyle(
+                        fontSize: 19,
+                        height: 1.6,
+                        color: Color(0xFF333333),
+                      ),
                     ),
                   ),
 
@@ -534,16 +813,55 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   ),
 
                   // 댓글 섹션 타이틀
-                  const SizedBox(height: 16),
-                  const Divider(),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8.0),
-                    child: Text(
-                      '댓글',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                  const SizedBox(height: 32),
+                  Container(
+                    padding: const EdgeInsets.only(top: 16, bottom: 8),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        top: BorderSide(color: Colors.grey.shade200, width: 1),
                       ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          height: 18,
+                          width: 3,
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade700,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          '댓글',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: StreamBuilder<List<Comment>>(
+                            stream: _commentService.getCommentsByPostId(_currentPost.id),
+                            builder: (context, snapshot) {
+                              final count = snapshot.data?.length ?? 0;
+                              return Text(
+                                '$count',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey.shade700,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                   ),
 
@@ -581,7 +899,12 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: comments.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        separatorBuilder: (_, __) => Divider(
+                          height: 1,
+                          color: Colors.grey.shade200,
+                          indent: 8,
+                          endIndent: 8,
+                        ),
                         itemBuilder: (context, index) {
                           return _buildCommentItem(comments[index]);
                         },
@@ -679,5 +1002,22 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         ],
       ),
     );
+  }
+
+  // 아바타 색상 생성 헬퍼 메서드
+  Color _getAvatarColor(String text) {
+    if (text.isEmpty) return Colors.grey;
+    final colors = [
+      Colors.blue.shade700,
+      Colors.purple.shade700,
+      Colors.green.shade700,
+      Colors.orange.shade700,
+      Colors.pink.shade700,
+      Colors.teal.shade700,
+    ];
+    
+    // 이름의 첫 글자 아스키 코드를 기준으로 색상 결정
+    final index = text.codeUnitAt(0) % colors.length;
+    return colors[index];
   }
 }

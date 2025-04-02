@@ -47,6 +47,7 @@ class MeetupService {
     required String time,
     required int maxParticipants,
     required DateTime date,
+    String category = '기타', // 카테고리 매개변수 추가
   }) async {
     try {
       final user = _auth.currentUser;
@@ -74,6 +75,7 @@ class MeetupService {
         'date': date,
         'createdAt': now,
         'updatedAt': now,
+        'category': category, // 카테고리 필드 추가
       };
 
       // Firestore에 저장
@@ -124,9 +126,79 @@ class MeetupService {
           host: data['hostNickname'] ?? '익명',
           imageUrl: AppConstants.DEFAULT_IMAGE_URL,
           date: meetupDate,
+          category: data['category'] ?? '기타', // 카테고리 필드 추가
         );
       }).toList();
     });
+  }
+
+  // 카테고리별 모임 가져오기 (새로운 메서드)
+  Stream<List<Meetup>> getMeetupsByCategory(String category) {
+    // 현재 날짜 이후의 모임만 가져오기
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    // 모든 모임 가져오기인 경우
+    if (category == '전체') {
+      return _firestore
+          .collection('meetups')
+          .where('date', isGreaterThanOrEqualTo: today)
+          .orderBy('date', descending: false)
+          .snapshots()
+          .map(_convertToMeetups);
+    }
+
+    // 특정 카테고리 모임 가져오기
+    return _firestore
+        .collection('meetups')
+        .where('category', isEqualTo: category)
+        .where('date', isGreaterThanOrEqualTo: today)
+        .orderBy('date', descending: false)
+        .snapshots()
+        .map(_convertToMeetups);
+  }
+
+  // 오늘의 모임 가져오기
+  Stream<List<Meetup>> getTodayMeetups() {
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
+    final endOfDay = startOfDay.add(const Duration(days: 1)).subtract(const Duration(microseconds: 1));
+
+    return _firestore
+        .collection('meetups')
+        .where('date', isGreaterThanOrEqualTo: startOfDay)
+        .where('date', isLessThanOrEqualTo: endOfDay)
+        .snapshots()
+        .map(_convertToMeetups);
+  }
+
+  // Firestore 문서를 Meetup 객체 리스트로 변환하는 헬퍼 메서드
+  List<Meetup> _convertToMeetups(QuerySnapshot snapshot) {
+    return snapshot.docs.map((doc) {
+      final data = doc.data() as Map<String, dynamic>;
+
+      // Timestamp에서 DateTime으로 변환
+      DateTime meetupDate;
+      if (data['date'] is Timestamp) {
+        meetupDate = (data['date'] as Timestamp).toDate();
+      } else {
+        meetupDate = DateTime.now();
+      }
+
+      return Meetup(
+        id: doc.id,
+        title: data['title'] ?? '',
+        description: data['description'] ?? '',
+        location: data['location'] ?? '',
+        time: data['time'] ?? '',
+        maxParticipants: data['maxParticipants'] ?? 0,
+        currentParticipants: data['currentParticipants'] ?? 1,
+        host: data['hostNickname'] ?? '익명',
+        imageUrl: AppConstants.DEFAULT_IMAGE_URL,
+        date: meetupDate,
+        category: data['category'] ?? '기타',
+      );
+    }).toList();
   }
 
   // 특정 ID의 모임 가져오기
@@ -160,6 +232,7 @@ class MeetupService {
         host: data['hostNickname'] ?? '익명',
         imageUrl: AppConstants.DEFAULT_IMAGE_URL,
         date: meetupDate,
+        category: data['category'] ?? '기타', // 카테고리 필드 추가
       );
     } catch (e) {
       print('모임 정보 불러오기 오류: $e');
@@ -177,6 +250,74 @@ class MeetupService {
       // final DateTime dayDate = weekDates[dayIndex];
       return []; // 빈 배열 반환 (예시 데이터 삭제)
     });
+  }
+
+  // 모임 검색 메서드 추가
+  Stream<List<Meetup>> searchMeetups(String query) {
+    if (query.isEmpty) {
+      // 빈 검색어인 경우 모든 모임 반환
+      return getMeetupsByCategory('전체');
+    }
+    
+    // 소문자로 변환하여 대소문자 구분 없이 검색
+    final lowercaseQuery = query.toLowerCase();
+    
+    // 현재 날짜 이후의 모임 중에서 검색
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    
+    return _firestore
+        .collection('meetups')
+        .where('date', isGreaterThanOrEqualTo: today)
+        .orderBy('date', descending: false)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) {
+                final data = doc.data();
+                
+                // 검색어와 일치하는지 확인 (제목, 내용, 위치 등)
+                final title = (data['title'] as String? ?? '').toLowerCase();
+                final description = (data['description'] as String? ?? '').toLowerCase();
+                final location = (data['location'] as String? ?? '').toLowerCase();
+                final category = (data['category'] as String? ?? '').toLowerCase();
+                final hostName = (data['hostNickname'] as String? ?? '').toLowerCase();
+                
+                // 어디든 검색어가 포함되어 있는지 확인
+                if (title.contains(lowercaseQuery) || 
+                    description.contains(lowercaseQuery) || 
+                    location.contains(lowercaseQuery) ||
+                    category.contains(lowercaseQuery) ||
+                    hostName.contains(lowercaseQuery)) {
+                  
+                  // Timestamp에서 DateTime으로 변환
+                  DateTime meetupDate;
+                  if (data['date'] is Timestamp) {
+                    meetupDate = (data['date'] as Timestamp).toDate();
+                  } else {
+                    meetupDate = DateTime.now();
+                  }
+                  
+                  return Meetup(
+                    id: doc.id,
+                    title: data['title'] ?? '',
+                    description: data['description'] ?? '',
+                    location: data['location'] ?? '',
+                    time: data['time'] ?? '',
+                    maxParticipants: data['maxParticipants'] ?? 0,
+                    currentParticipants: data['currentParticipants'] ?? 1,
+                    host: data['hostNickname'] ?? '익명',
+                    imageUrl: AppConstants.DEFAULT_IMAGE_URL,
+                    date: meetupDate,
+                    category: data['category'] ?? '기타',
+                  );
+                } else {
+                  return null; // 검색 조건에 맞지 않으면 null 반환
+                }
+              })
+              .whereType<Meetup>() // null이 아닌 항목만 필터링
+              .toList();
+        });
   }
 
   // 특정 요일에 해당하는 날짜 계산

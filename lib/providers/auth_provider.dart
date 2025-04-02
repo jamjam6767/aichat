@@ -203,6 +203,8 @@ class AuthProvider with ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
+      print("Auth Provider - 프로필 업데이트: 닉네임=$nickname, 국적=$nationality");
+
       await _firestore.collection('users').doc(_user!.uid).update({
         'nickname': nickname,
         'nationality': nationality,

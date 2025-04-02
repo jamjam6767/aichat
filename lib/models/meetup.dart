@@ -17,6 +17,7 @@ class Meetup {
   final String host;
   final String imageUrl;
   final DateTime date;
+  final String category;
 
   const Meetup({
     required this.id,
@@ -29,6 +30,7 @@ class Meetup {
     required this.host,
     required this.imageUrl,
     required this.date,
+    this.category = '기타',
   });
 
   Meetup copyWith({
@@ -42,6 +44,7 @@ class Meetup {
     String? host,
     String? imageUrl,
     DateTime? date,
+    String? category,
   }) {
     return Meetup(
       id: id ?? this.id,
@@ -54,6 +57,7 @@ class Meetup {
       host: host ?? this.host,
       imageUrl: imageUrl ?? this.imageUrl,
       date: date ?? this.date,
+      category: category ?? this.category,
     );
   }
 

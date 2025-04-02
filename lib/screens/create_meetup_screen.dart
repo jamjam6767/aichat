@@ -5,7 +5,6 @@ import '../constants/app_constants.dart';
 import '../services/meetup_service.dart';
 import '../providers/auth_provider.dart';
 
-
 // 모임 생성화면
 // 모임 정보 입력 및 저장
 
@@ -34,6 +33,8 @@ class _CreateMeetupScreenState extends State<CreateMeetupScreen> {
   final _meetupService = MeetupService();
   final List<String> _weekdayNames = ['월', '화', '수', '목', '금', '토', '일'];
   bool _isSubmitting = false;
+  String _selectedCategory = '기타'; // 카테고리 선택을 위한 상태 변수
+  final List<String> _categories = ['스터디', '식사', '취미', '문화', '기타'];
 
   // 최대 인원 선택 목록
   final List<int> _participantOptions = [3, 4];
@@ -131,264 +132,484 @@ class _CreateMeetupScreenState extends State<CreateMeetupScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final nickname = authProvider.userData?['nickname'] ?? AppConstants.DEFAULT_HOST;
 
-    return AlertDialog(
-      title: Text(AppConstants.CREATE_MEETUP),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 주최자 정보
-              Text(
-                '주최자: $nickname',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[700],
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '새로운 모임 생성',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade700,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 16),
-
-              // 날짜 선택 드롭다운
-              DropdownButtonFormField<int>(
-                value: _selectedDayIndex,
-                decoration: InputDecoration(labelText: AppConstants.FORM_DAY),
-                items: List.generate(
-                  weekDates.length,
-                      (index) {
-                    final DateTime date = weekDates[index];
-                    final String weekday = _weekdayNames[date.weekday - 1];
-                    return DropdownMenuItem(
-                      value: index,
-                      child: Text('${date.month}월 ${date.day}일 ($weekday)'),
-                    );
-                  },
+                const Divider(),
+                const SizedBox(height: 16),
+                
+                // 주최자 정보
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue.shade100),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 24,
+                        backgroundColor: Colors.blue.shade200,
+                        child: Text(
+                          nickname.isNotEmpty ? nickname[0].toUpperCase() : '?',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            '주최자',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          Text(
+                            nickname,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                onChanged: (value) {
-                  if (value != null && value != _selectedDayIndex) {
-                    setState(() {
-                      _selectedDayIndex = value;
-                    });
-                    // 날짜가 변경되면 시간 옵션 업데이트
-                    _updateTimeOptions();
-                  }
-                },
-              ),
-              const SizedBox(height: 8),
-              Text(
-                dateStr,
-                style: TextStyle(
-                  color: Theme.of(context).primaryColor,
-                  fontWeight: FontWeight.bold,
+                
+                const SizedBox(height: 20),
+
+                // 날짜 및 요일 선택
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '날짜 선택',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[800],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    // 요일 선택 칩
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: List.generate(
+                          weekDates.length,
+                          (index) {
+                            final bool isSelected = index == _selectedDayIndex;
+                            final DateTime date = weekDates[index];
+                            final String weekday = _weekdayNames[date.weekday - 1];
+                            
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    _selectedDayIndex = index;
+                                  });
+                                  _updateTimeOptions();
+                                },
+                                borderRadius: BorderRadius.circular(16),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? Colors.blue : Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        weekday,
+                                        style: TextStyle(
+                                          color: isSelected ? Colors.white : Colors.grey[700],
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '${date.day}',
+                                        style: TextStyle(
+                                          color: isSelected ? Colors.white : Colors.grey[700],
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 12),
+                const SizedBox(height: 24),
 
-              // 모임 제목
-              TextFormField(
-                controller: _titleController,
-                decoration: InputDecoration(labelText: AppConstants.FORM_TITLE),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return AppConstants.FORM_TITLE_ERROR;
-                  }
-                  return null;
-                },
-              ),
+                // 모임 제목
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '모임 정보',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[800],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: _titleController,
+                      decoration: InputDecoration(
+                        labelText: '제목',
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.blue.shade400),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return '모임 제목을 입력해주세요';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
 
-              // 모임 설명
-              TextFormField(
-                controller: _descriptionController,
-                decoration: InputDecoration(labelText: AppConstants.FORM_DESCRIPTION),
-                maxLines: 2,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '모임 설명을 입력해주세요';
-                  }
-                  return null;
-                },
-              ),
-
-              // 모임 장소
-              TextFormField(
-                controller: _locationController,
-                decoration: InputDecoration(labelText: AppConstants.FORM_LOCATION),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '장소를 입력해주세요';
-                  }
-                  return null;
-                },
-              ),
-
-              // 시간 선택 영역
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 16),
-                  Text(
-                    AppConstants.FORM_TIME,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[700],
+                // 모임 설명
+                TextFormField(
+                  controller: _descriptionController,
+                  decoration: InputDecoration(
+                    labelText: '설명',
+                    hintText: '모임에 대한 설명을 입력해주세요',
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.blue.shade400),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  maxLines: 3,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return '모임 설명을 입력해주세요';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
 
-                  // 시간 옵션이 없는 경우
-                  if (_timeOptions.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: Text(
-                        '오늘은 이미 지난 시간입니다. 다른 날짜를 선택해주세요.',
-                        style: TextStyle(color: Colors.red[700], fontSize: 14),
+                // 카테고리 선택
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '카테고리',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[800],
                       ),
-                    )
-                  // 시간 선택 드롭다운
-                  else
-                    DropdownButtonFormField<String>(
-                      value: _selectedTime,
-                      isExpanded: true, // 드롭다운을 전체 너비로 확장
+                    ),
+                    const SizedBox(height: 10),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: _categories.map((category) {
+                          final isSelected = _selectedCategory == category;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 10),
+                            child: ChoiceChip(
+                              label: Text(category),
+                              selected: isSelected,
+                              selectedColor: Colors.blue.shade100,
+                              backgroundColor: Colors.grey.shade100,
+                              labelStyle: TextStyle(
+                                color: isSelected ? Colors.blue.shade700 : Colors.black87,
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              ),
+                              onSelected: (selected) {
+                                if (selected) {
+                                  setState(() {
+                                    _selectedCategory = category;
+                                  });
+                                }
+                              },
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // 모임 장소
+                TextFormField(
+                  controller: _locationController,
+                  decoration: InputDecoration(
+                    labelText: '장소',
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.blue.shade400),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return '장소를 입력해주세요';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // 시간 선택 영역
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 16),
+                    Text(
+                      '시간 선택',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // 시간 옵션이 없는 경우
+                    if (_timeOptions.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Text(
+                          '오늘은 이미 지난 시간입니다. 다른 날짜를 선택해주세요.',
+                          style: TextStyle(color: Colors.red[700], fontSize: 14),
+                        ),
+                      )
+                    // 시간 선택 드롭다운
+                    else
+                      DropdownButtonFormField<String>(
+                        value: _selectedTime,
+                        isExpanded: true, // 드롭다운을 전체 너비로 확장
+                        decoration: InputDecoration(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        items: _timeOptions.map((String time) {
+                          return DropdownMenuItem<String>(
+                            value: time,
+                            child: Text(time),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() {
+                              _selectedTime = value;
+                            });
+                          }
+                        },
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return '시간을 선택해주세요';
+                          }
+                          return null;
+                        },
+                      ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // 최대 인원 선택 드롭다운
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '최대 인원',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<int>(
+                      value: _maxParticipants,
+                      isExpanded: true,
                       decoration: InputDecoration(
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      items: _timeOptions.map((String time) {
-                        return DropdownMenuItem<String>(
-                          value: time,
-                          child: Text(time),
+                      items: _participantOptions.map((int value) {
+                        return DropdownMenuItem<int>(
+                          value: value,
+                          child: Text('$value명'),
                         );
                       }).toList(),
                       onChanged: (value) {
                         if (value != null) {
                           setState(() {
-                            _selectedTime = value;
+                            _maxParticipants = value;
                           });
                         }
                       },
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return '시간을 선택해주세요';
-                        }
-                        return null;
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // 하단 버튼
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: _isSubmitting ? null : () {
+                        Navigator.of(context).pop();
                       },
-                    ),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
-              // 최대 인원 선택 드롭다운
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    AppConstants.FORM_MAX_PARTICIPANTS,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[700],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<int>(
-                    value: _maxParticipants,
-                    isExpanded: true,
-                    decoration: InputDecoration(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
+                      child: const Text('취소'),
                     ),
-                    items: _participantOptions.map((int value) {
-                      return DropdownMenuItem<int>(
-                        value: value,
-                        child: Text('$value명'),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          _maxParticipants = value;
-                        });
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ],
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: (_isSubmitting || _timeOptions.isEmpty || _selectedTime == null) ? null : () async {
+                        if (_formKey.currentState!.validate()) {
+                          setState(() {
+                            _isSubmitting = true;
+                          });
+
+                          _formKey.currentState!.save();
+
+                          try {
+                            // Firebase에 모임 생성
+                            final success = await _meetupService.createMeetup(
+                              title: _titleController.text.trim(),
+                              description: _descriptionController.text.trim(),
+                              location: _locationController.text.trim(),
+                              time: _selectedTime!, // 선택된 시간 사용
+                              maxParticipants: _maxParticipants,
+                              date: selectedDate,
+                              category: _selectedCategory, // 선택된 카테고리 전달
+                            );
+
+                            if (success) {
+                              if (mounted) {
+                                // 콜백은 호출하지 않고 창만 닫음 (Firebase에서 이미 데이터가 생성됨)
+                                Navigator.of(context).pop();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('모임이 생성되었습니다!')),
+                                );
+                              }
+                            } else if (mounted) {
+                              setState(() {
+                                _isSubmitting = false;
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('모임 생성에 실패했습니다. 다시 시도해주세요.')),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              setState(() {
+                                _isSubmitting = false;
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('오류가 발생했습니다: $e')),
+                              );
+                            }
+                          }
+                        }
+                      },
+                      child: _isSubmitting
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text('생성'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: _isSubmitting ? null : () {
-            Navigator.of(context).pop();
-          },
-          child: Text(AppConstants.CANCEL),
-        ),
-        ElevatedButton(
-          onPressed: (_isSubmitting || _timeOptions.isEmpty || _selectedTime == null) ? null : () async {
-            if (_formKey.currentState!.validate()) {
-              setState(() {
-                _isSubmitting = true;
-              });
-
-              _formKey.currentState!.save();
-
-              try {
-                // Firebase에 모임 생성
-                final success = await _meetupService.createMeetup(
-                  title: _titleController.text.trim(),
-                  description: _descriptionController.text.trim(),
-                  location: _locationController.text.trim(),
-                  time: _selectedTime!, // 선택된 시간 사용
-                  maxParticipants: _maxParticipants,
-                  date: selectedDate,
-                );
-
-                if (success) {
-                  if (mounted) {
-                    // 콜백은 호출하지 않고 창만 닫음 (Firebase에서 이미 데이터가 생성됨)
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('모임이 생성되었습니다!')),
-                    );
-                  }
-                } else if (mounted) {
-                  setState(() {
-                    _isSubmitting = false;
-                  });
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('모임 생성에 실패했습니다. 다시 시도해주세요.')),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  setState(() {
-                    _isSubmitting = false;
-                  });
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('오류가 발생했습니다: $e')),
-                  );
-                }
-              }
-            }
-          },
-          child: _isSubmitting
-              ? const SizedBox(
-            height: 20,
-            width: 20,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: Colors.white,
-            ),
-          )
-              : Text(AppConstants.CREATE),
-        ),
-      ],
     );
   }
 }

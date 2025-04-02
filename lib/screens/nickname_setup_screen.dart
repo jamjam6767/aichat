@@ -2,12 +2,10 @@
 // 사용자 닉네임 설정 화면
 // 프로필 초기 설정 처리
 
-
-
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../screens/main_screen.dart';
 
 class NicknameSetupScreen extends StatefulWidget {
   const NicknameSetupScreen({Key? key}) : super(key: key);
@@ -20,6 +18,7 @@ class _NicknameSetupScreenState extends State<NicknameSetupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nicknameController = TextEditingController();
   String _selectedNationality = '한국'; // 기본값
+  bool _isLoading = false; // 로딩 상태
 
   // 국적 목록 (필요에 따라 확장)
   final List<String> _nationalities = [
@@ -31,10 +30,59 @@ class _NicknameSetupScreenState extends State<NicknameSetupScreen> {
     if (_formKey.currentState?.validate() ?? false) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-      await authProvider.updateUserProfile(
-        nickname: _nicknameController.text.trim(),
-        nationality: _selectedNationality,
-      );
+      try {
+        // 로딩 표시
+        setState(() {
+          _isLoading = true;
+        });
+
+        // 닉네임과 국적 업데이트
+        final success = await authProvider.updateUserProfile(
+          nickname: _nicknameController.text.trim(),
+          nationality: _selectedNationality,
+        );
+
+        // 성공 여부에 따른 처리
+        if (success && context.mounted) {
+          // 성공 메시지
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('프로필이 설정되었습니다.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // 메인 화면으로 이동
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const MainScreen()),
+          );
+        } else if (context.mounted) {
+          // 실패 메시지
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('프로필 설정에 실패했습니다. 다시 시도해주세요.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } catch (e) {
+        // 오류 처리
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('오류가 발생했습니다: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        // 로딩 표시 제거
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
     }
   }
 
@@ -127,21 +175,30 @@ class _NicknameSetupScreenState extends State<NicknameSetupScreen> {
 
               // 제출 버튼
               ElevatedButton(
-                onPressed: _submitForm,
+                onPressed: _isLoading ? null : _submitForm,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: Colors.green,
+                  backgroundColor: _isLoading ? Colors.grey : Colors.green,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text(
-                  '시작하기',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 3,
+                        ),
+                      )
+                    : const Text(
+                        '시작하기',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ],
           ),
