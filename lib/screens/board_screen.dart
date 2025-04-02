@@ -31,11 +31,11 @@ class _BoardScreenState extends State<BoardScreen> {
   // 배너 데이터 - 제목과 URL을 포함합니다.
   final List<Map<String, dynamic>> _banners = [
     {
-      'title': 'MCPC',
-      'url': 'https://www.google.com/', 
+      'title': 'MCPC Website',
+      'url': 'https://swift-graphs-363644.framer.app/',
       'color': Colors.blue,
       'icon': Icons.computer,
-      'domain': 'google.com',
+      'domain': 'MCPC Website',
     },
     {
       'title': 'Office of International Affairs',
