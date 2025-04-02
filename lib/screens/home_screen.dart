@@ -289,27 +289,27 @@ class _MeetupHomePageState extends State<MeetupHomePage> with SingleTickerProvid
                 indicatorSize: TabBarIndicatorSize.tab,
               ),
             ),
-          
-          // 위치 및 현재 선택된 날짜 표시 (검색 모드가 아닐 때만)
+
+          // 현재 선택된 날짜와 요일 표시 (검색 모드가 아닐 때만)
           if (!_isSearching)
             Container(
               padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
               alignment: Alignment.centerLeft,
               child: Row(
                 children: [
-                  Icon(Icons.location_on, color: Colors.blue[600], size: 20.0),
+                  Icon(Icons.event, color: Colors.blue[600], size: 20.0),  // 날짜 아이콘 추가
                   const SizedBox(width: 8.0),
-                  const Text(
-                    '안산',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16.0,
-                    ),
-                  ),
-                  const SizedBox(width: 8.0),
-                  // 현재 선택된 탭의 날짜 표시
                   Text(
                     selectedDayString,
+                    style: TextStyle(
+                      fontSize: 15.0,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[800],
+                    ),
+                  ),
+                  const SizedBox(width: 4.0),
+                  Text(
+                    '(${_weekdayNames[weekDates[_tabController.index].weekday - 1]})',  // 요일 추가
                     style: TextStyle(
                       fontSize: 14.0,
                       color: Colors.grey[600],
@@ -373,25 +373,25 @@ class _MeetupHomePageState extends State<MeetupHomePage> with SingleTickerProvid
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                         decoration: BoxDecoration(
                                           color: (meetup.category == '스터디')
-                                              ? Colors.blue.shade700.withOpacity(0.1)
+                                              ? Colors.blue.shade700.withValues(alpha: 26)  // 0.1 * 255 ≈ 26
                                               : (meetup.category == '식사')
-                                                  ? Colors.orange.shade700.withOpacity(0.1)
-                                                  : (meetup.category == '취미')
-                                                      ? Colors.green.shade700.withOpacity(0.1)
-                                                      : (meetup.category == '문화')
-                                                          ? Colors.purple.shade700.withOpacity(0.1)
-                                                          : Colors.grey.shade700.withOpacity(0.1),
+                                              ? Colors.orange.shade700.withValues(alpha: 26)
+                                              : (meetup.category == '취미')
+                                              ? Colors.green.shade700.withValues(alpha: 26)
+                                              : (meetup.category == '문화')
+                                              ? Colors.purple.shade700.withValues(alpha: 26)
+                                              : Colors.grey.shade700.withValues(alpha: 26),
                                           borderRadius: BorderRadius.circular(8),
                                           border: Border.all(
                                             color: (meetup.category == '스터디')
-                                                ? Colors.blue.shade700.withOpacity(0.5)
+                                                ? Colors.blue.shade700.withValues(alpha: 128)  // 0.5 * 255 = 128
                                                 : (meetup.category == '식사')
-                                                    ? Colors.orange.shade700.withOpacity(0.5)
-                                                    : (meetup.category == '취미')
-                                                        ? Colors.green.shade700.withOpacity(0.5)
-                                                        : (meetup.category == '문화')
-                                                            ? Colors.purple.shade700.withOpacity(0.5)
-                                                            : Colors.grey.shade700.withOpacity(0.5),
+                                                ? Colors.orange.shade700.withValues(alpha: 128)
+                                                : (meetup.category == '취미')
+                                                ? Colors.green.shade700.withValues(alpha: 128)
+                                                : (meetup.category == '문화')
+                                                ? Colors.purple.shade700.withValues(alpha: 128)
+                                                : Colors.grey.shade700.withValues(alpha: 128),
                                             width: 1,
                                           ),
                                         ),
