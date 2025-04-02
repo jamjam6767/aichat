@@ -7,7 +7,7 @@
         android:maxSdkVersion="32" />
 
     <application
-        android:label="flutter_practice3"
+        android:label="Wefilling"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">

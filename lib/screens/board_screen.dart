@@ -533,13 +533,6 @@ class _BoardScreenState extends State<BoardScreen> {
                                       ),
                                     ),
                                     
-                                    // 국적 표시
-                                    const SizedBox(width: 4),
-                                    CountryFlagCircle(
-                                      nationality: post.authorNationality,
-                                      size: 20,
-                                    ),
-                                    
                                     // 시간 구분점
                                     Container(
                                       margin: const EdgeInsets.symmetric(horizontal: 8),
@@ -567,8 +560,8 @@ class _BoardScreenState extends State<BoardScreen> {
                                       _buildCountBadge(
                                         Icons.favorite,
                                         post.likes,
-                                        Colors.blue.shade400,
-                                        Colors.blue.shade50,
+                                        Colors.red,
+                                        Colors.red.shade50,
                                       ),
                                       
                                     // 댓글 개수 표시

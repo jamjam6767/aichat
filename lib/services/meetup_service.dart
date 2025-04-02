@@ -4,12 +4,14 @@
 // 날짜별 모임 조회 및 필터링
 // 날짜 관련 유틸리티 함수 제공
 
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../models/meetup.dart';
 import '../constants/app_constants.dart';
 import 'notification_service.dart';
+import 'dart:io';
+import 'package:country_flags/country_flags.dart';
 
 class MeetupService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -48,6 +50,8 @@ class MeetupService {
     required int maxParticipants,
     required DateTime date,
     String category = '기타', // 카테고리 매개변수 추가
+    String thumbnailContent = '', // 썸네일 텍스트 컨텐츠 추가
+    File? thumbnailImage, // 썸네일 이미지 파일 추가
   }) async {
     try {
       final user = _auth.currentUser;
@@ -57,6 +61,7 @@ class MeetupService {
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
       final userData = userDoc.data();
       final nickname = userData?['nickname'] ?? '익명';
+      final nationality = userData?['nationality'] ?? ''; // 국적 가져오기
 
       // 모임 생성 시간
       final now = FieldValue.serverTimestamp();
@@ -76,10 +81,29 @@ class MeetupService {
         'createdAt': now,
         'updatedAt': now,
         'category': category, // 카테고리 필드 추가
+        'hostNationality': nationality, // 주최자 국적 추가
+        'thumbnailContent': thumbnailContent, // 썸네일 텍스트 컨텐츠 추가
       };
 
       // Firestore에 저장
-      await _firestore.collection('meetups').add(meetupData);
+      final docRef = await _firestore.collection('meetups').add(meetupData);
+      
+      // 이미지 업로드 처리
+      if (thumbnailImage != null) {
+        try {
+          final storage = FirebaseStorage.instance;
+          final Reference storageRef = storage.ref().child('meetup_thumbnails/${docRef.id}');
+          
+          await storageRef.putFile(thumbnailImage);
+          final imageUrl = await storageRef.getDownloadURL();
+          
+          // 이미지 URL 업데이트
+          await docRef.update({'thumbnailImageUrl': imageUrl});
+        } catch (e) {
+          print('썸네일 이미지 업로드 오류: $e');
+        }
+      }
+      
       return true;
     } catch (e) {
       print('모임 생성 오류: $e');
@@ -124,7 +148,10 @@ class MeetupService {
           maxParticipants: data['maxParticipants'] ?? 0,
           currentParticipants: data['currentParticipants'] ?? 1,
           host: data['hostNickname'] ?? '익명',
-          imageUrl: AppConstants.DEFAULT_IMAGE_URL,
+          hostNationality: data['hostNickname'] == 'dev99' ? '한국' : (data['hostNationality'] ?? ''), // 테스트 목적으로 dev99인 경우 한국으로 설정
+          imageUrl: data['thumbnailImageUrl'] ?? AppConstants.DEFAULT_IMAGE_URL,
+          thumbnailContent: data['thumbnailContent'] ?? '',
+          thumbnailImageUrl: data['thumbnailImageUrl'] ?? '',
           date: meetupDate,
           category: data['category'] ?? '기타', // 카테고리 필드 추가
         );
@@ -194,7 +221,10 @@ class MeetupService {
         maxParticipants: data['maxParticipants'] ?? 0,
         currentParticipants: data['currentParticipants'] ?? 1,
         host: data['hostNickname'] ?? '익명',
-        imageUrl: AppConstants.DEFAULT_IMAGE_URL,
+        hostNationality: data['hostNickname'] == 'dev99' ? '한국' : (data['hostNationality'] ?? ''), // 테스트 목적으로 dev99인 경우 한국으로 설정
+        imageUrl: data['thumbnailImageUrl'] ?? AppConstants.DEFAULT_IMAGE_URL,
+        thumbnailContent: data['thumbnailContent'] ?? '',
+        thumbnailImageUrl: data['thumbnailImageUrl'] ?? '',
         date: meetupDate,
         category: data['category'] ?? '기타',
       );
@@ -230,7 +260,10 @@ class MeetupService {
         maxParticipants: data['maxParticipants'] ?? 0,
         currentParticipants: data['currentParticipants'] ?? 1,
         host: data['hostNickname'] ?? '익명',
-        imageUrl: AppConstants.DEFAULT_IMAGE_URL,
+        hostNationality: data['hostNickname'] == 'dev99' ? '한국' : (data['hostNationality'] ?? ''), // 테스트 목적으로 dev99인 경우 한국으로 설정
+        imageUrl: data['thumbnailImageUrl'] ?? AppConstants.DEFAULT_IMAGE_URL,
+        thumbnailContent: data['thumbnailContent'] ?? '',
+        thumbnailImageUrl: data['thumbnailImageUrl'] ?? '',
         date: meetupDate,
         category: data['category'] ?? '기타', // 카테고리 필드 추가
       );
@@ -303,7 +336,10 @@ class MeetupService {
                     maxParticipants: data['maxParticipants'] ?? 0,
                     currentParticipants: data['currentParticipants'] ?? 1,
                     host: data['hostNickname'] ?? '익명',
-                    imageUrl: AppConstants.DEFAULT_IMAGE_URL,
+                    hostNationality: data['hostNickname'] == 'dev99' ? '한국' : (data['hostNationality'] ?? ''), // 테스트 목적으로 dev99인 경우 한국으로 설정
+                    imageUrl: data['thumbnailImageUrl'] ?? AppConstants.DEFAULT_IMAGE_URL,
+                    thumbnailContent: data['thumbnailContent'] ?? '',
+                    thumbnailImageUrl: data['thumbnailImageUrl'] ?? '',
                     date: meetupDate,
                     category: data['category'] ?? '기타',
                   );

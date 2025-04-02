@@ -280,6 +280,113 @@ class MeetupCard extends StatelessWidget {
   
   const MeetupCard({Key? key, required this.meetup}) : super(key: key);
   
+  // 썸네일 위젯 생성
+  Widget _buildThumbnail() {
+    // 썸네일 이미지가 있는 경우 (URL이 있는 경우)
+    if (meetup.thumbnailImageUrl.isNotEmpty) {
+      return Container(
+        height: 120,
+        decoration: BoxDecoration(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+          image: DecorationImage(
+            image: NetworkImage(meetup.thumbnailImageUrl),
+            fit: BoxFit.cover,
+          ),
+        ),
+        alignment: Alignment.center,
+        child: meetup.thumbnailContent.isNotEmpty
+            ? Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  meetup.thumbnailContent,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              )
+            : null,
+      );
+    } 
+    // 썸네일 이미지가 없고 텍스트만 있는 경우
+    else if (meetup.thumbnailContent.isNotEmpty) {
+      return Container(
+        height: 120,
+        decoration: BoxDecoration(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+          color: _getCategoryColor(meetup.category).withOpacity(0.3),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          meetup.thumbnailContent,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: _getCategoryColor(meetup.category),
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+      );
+    } 
+    // 썸네일이 없는 경우 카테고리 기반 배너
+    else {
+      return Container(
+        height: 80,
+        decoration: BoxDecoration(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+          color: _getCategoryColor(meetup.category).withOpacity(0.2),
+        ),
+        alignment: Alignment.center,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              _getCategoryIcon(meetup.category),
+              color: _getCategoryColor(meetup.category),
+              size: 30,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              meetup.category,
+              style: TextStyle(
+                color: _getCategoryColor(meetup.category),
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+  
+  // 카테고리별 아이콘
+  IconData _getCategoryIcon(String category) {
+    switch (category) {
+      case '스터디': return Icons.book;
+      case '식사': return Icons.restaurant;
+      case '취미': return Icons.sports_basketball;
+      case '문화': return Icons.theater_comedy;
+      default: return Icons.category;
+    }
+  }
+  
+  // 카테고리별 색상
+  Color _getCategoryColor(String category) {
+    switch (category) {
+      case '스터디': return Colors.blue;
+      case '식사': return Colors.orange;
+      case '취미': return Colors.green;
+      case '문화': return Colors.purple;
+      default: return Colors.grey;
+    }
+  }
+  
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -288,78 +395,144 @@ class MeetupCard extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(12),
-        title: Text(
-          meetup.title,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
+      clipBehavior: Clip.antiAlias, // 모서리가 잘리지 않도록 설정
+      child: Column(
+        children: [
+          // 썸네일 영역
+          _buildThumbnail(),
+          
+          // 컨텐츠 영역
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 제목과 상태
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        meetup.title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _getStatusColor(meetup.getStatus()),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        meetup.getStatus(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                
+                // 설명
+                if (meetup.description.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    meetup.description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+                
+                const SizedBox(height: 8),
+                
+                // 장소 및 시간
+                Row(
+                  children: [
+                    Icon(
+                      Icons.location_on_outlined,
+                      size: 16,
+                      color: Colors.grey[600],
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        meetup.location,
+                        style: TextStyle(color: Colors.grey[700]),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 4),
+                
+                Row(
+                  children: [
+                    Icon(
+                      Icons.access_time,
+                      size: 16,
+                      color: Colors.grey[600],
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${_getFormattedDate(meetup.date)} ${meetup.time}',
+                      style: TextStyle(color: Colors.grey[700]),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 4),
+                
+                // 인원 및 주최자
+                Row(
+                  children: [
+                    Icon(
+                      Icons.group,
+                      size: 16,
+                      color: Colors.grey[600],
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${meetup.currentParticipants}/${meetup.maxParticipants}명',
+                      style: TextStyle(color: Colors.grey[700]),
+                    ),
+                    const SizedBox(width: 12),
+                    Icon(
+                      Icons.person,
+                      size: 16,
+                      color: Colors.grey[600],
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '주최: ${meetup.host}',
+                      style: TextStyle(color: Colors.grey[700]),
+                    ),
+                    if (meetup.hostNationality.isNotEmpty) ...[
+                      const SizedBox(width: 6),
+                      SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CountryFlagCircle(
+                          nationality: meetup.hostNationality,
+                          size: 18,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Text(meetup.description),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(
-                  Icons.location_on_outlined,
-                  size: 16,
-                  color: Colors.grey[600],
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  meetup.location,
-                  style: TextStyle(color: Colors.grey[700]),
-                ),
-                const SizedBox(width: 12),
-                Icon(
-                  Icons.access_time,
-                  size: 16,
-                  color: Colors.grey[600],
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '${_getFormattedDate(meetup.date)} ${meetup.time}',
-                  style: TextStyle(color: Colors.grey[700]),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Icon(
-                  Icons.group,
-                  size: 16,
-                  color: Colors.grey[600],
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '${meetup.currentParticipants}/${meetup.maxParticipants}명',
-                  style: TextStyle(color: Colors.grey[700]),
-                ),
-                const SizedBox(width: 12),
-                Icon(
-                  Icons.person,
-                  size: 16,
-                  color: Colors.grey[600],
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '주최: ${meetup.host}',
-                  style: TextStyle(color: Colors.grey[700]),
-                ),
-              ],
-            ),
-          ],
-        ),
-        onTap: () {
-          // 모임 상세 페이지로 이동
-        },
+        ],
       ),
+      onTap: () {
+        // 모임 상세 페이지로 이동
+      },
     );
   }
   
@@ -368,5 +541,15 @@ class MeetupCard extends StatelessWidget {
     final weekdays = ['월', '화', '수', '목', '금', '토', '일'];
     final weekday = weekdays[date.weekday - 1];
     return '${date.month}/${date.day}($weekday)';
+  }
+  
+  // 상태에 따른 색상
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case '예정': return Colors.blue;
+      case '진행중': return Colors.green;
+      case '종료': return Colors.grey;
+      default: return Colors.blue;
+    }
   }
 }

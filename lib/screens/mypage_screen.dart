@@ -6,8 +6,8 @@
 
 
 import 'package:flutter/material.dart';
-import 'package:flutter_practice3/screens/profile_edit_screen.dart';
-import 'package:flutter_practice3/screens/user_meetups_screens.dart';
+import 'profile_edit_screen.dart';
+import 'user_meetups_screens.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/user_stats_service.dart';

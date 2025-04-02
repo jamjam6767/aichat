@@ -6,6 +6,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../models/meetup.dart';
 import '../services/meetup_service.dart';
+import '../widgets/country_flag_circle.dart';
 
 class MeetupDetailScreen extends StatefulWidget {
   final Meetup meetup;
@@ -202,7 +203,13 @@ class _MeetupDetailScreenState extends State<MeetupDetailScreen> {
                     Icons.person,
                     Colors.green,
                     '주최자',
-                    widget.meetup.host,
+                    "${widget.meetup.host} (국적: ${widget.meetup.hostNationality.isEmpty ? '없음' : widget.meetup.hostNationality})",
+                    suffix: widget.meetup.hostNationality.isNotEmpty
+                      ? CountryFlagCircle(
+                          nationality: widget.meetup.hostNationality,
+                          size: 20,
+                        )
+                      : null,
                   ),
                   _buildInfoItem(
                     Icons.category,
@@ -283,7 +290,7 @@ class _MeetupDetailScreenState extends State<MeetupDetailScreen> {
     );
   }
 
-  Widget _buildInfoItem(IconData icon, Color color, String title, String content) {
+  Widget _buildInfoItem(IconData icon, Color color, String title, String content, {Widget? suffix}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       child: Row(
@@ -313,11 +320,20 @@ class _MeetupDetailScreenState extends State<MeetupDetailScreen> {
                     color: Colors.grey,
                   ),
                 ),
-                Text(
-                  content,
-                  style: const TextStyle(fontSize: 14),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  children: [
+                    Text(
+                      content,
+                      style: const TextStyle(fontSize: 14),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (suffix != null)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: suffix,
+                      ),
+                  ],
                 ),
               ],
             ),

@@ -1,11 +1,11 @@
 {
-    "name": "flutter_practice3",
-    "short_name": "flutter_practice3",
+    "name": "Wefilling",
+    "short_name": "Wefilling",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "함께하면 즐거운 대학 생활 - 위필링",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

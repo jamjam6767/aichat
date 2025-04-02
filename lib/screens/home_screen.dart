@@ -8,6 +8,7 @@ import '../models/meetup.dart';
 import '../services/meetup_service.dart';
 import 'create_meetup_screen.dart';
 import 'meetup_detail_screen.dart';
+import '../widgets/country_flag_circle.dart';
 
 class MeetupHomePage extends StatefulWidget {
   const MeetupHomePage({super.key});
@@ -297,17 +298,7 @@ class _MeetupHomePageState extends State<MeetupHomePage> with SingleTickerProvid
               alignment: Alignment.centerLeft,
               child: Row(
                 children: [
-                  Icon(Icons.location_on, color: Colors.blue[600], size: 20.0),
-                  const SizedBox(width: 8.0),
-                  const Text(
-                    '안산',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16.0,
-                    ),
-                  ),
-                  const SizedBox(width: 8.0),
-                  // 현재 선택된 탭의 날짜 표시
+                  // 현재 선택된 탭의 날짜만 표시
                   Text(
                     selectedDayString,
                     style: TextStyle(
@@ -472,17 +463,49 @@ class _MeetupHomePageState extends State<MeetupHomePage> with SingleTickerProvid
                                             },
                                             style: ElevatedButton.styleFrom(
                                               backgroundColor: meetup.currentParticipants >= meetup.maxParticipants 
-                                                  ? Colors.grey
+                                                  ? Colors.red.shade300
                                                   : Colors.blue.shade600,
                                               foregroundColor: Colors.white,
                                               elevation: 2,
                                             ),
                                             child: Text(
                                               meetup.currentParticipants >= meetup.maxParticipants
-                                                  ? '가득 참'
+                                                  ? '마감'
                                                   : '참여',
                                             ),
                                           ),
+                                        ],
+                                      ),
+                                      
+                                      // 주최자 정보 추가
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.person, size: 16),
+                                          const SizedBox(width: 4),
+                                          const Text('주최자:',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            "${meetup.host} (국적: ${meetup.hostNationality.isEmpty ? '없음' : meetup.hostNationality})",
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                          // 주최자 국적 아이콘 추가
+                                          if (meetup.hostNationality.isNotEmpty)
+                                            Padding(
+                                              padding: const EdgeInsets.only(left: 4),
+                                              child: CountryFlagCircle(
+                                                nationality: meetup.hostNationality,
+                                                size: 16,
+                                              ),
+                                            ),
                                         ],
                                       ),
                                     ],
@@ -618,7 +641,7 @@ class _MeetupHomePageState extends State<MeetupHomePage> with SingleTickerProvid
             ),
             const SizedBox(height: 8),
             const Text(
-              "새로운 친구들과 커피챗을 시작해보세요",
+              "함께하면 즐거운 대학 생활",
               style: TextStyle(
                 fontSize: 14.0,
                 color: Colors.black54,

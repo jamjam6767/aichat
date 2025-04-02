@@ -4,6 +4,10 @@ import '../models/meetup.dart';
 import '../constants/app_constants.dart';
 import '../services/meetup_service.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/country_flag_circle.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 // 모임 생성화면
 // 모임 정보 입력 및 저장
@@ -35,6 +39,11 @@ class _CreateMeetupScreenState extends State<CreateMeetupScreen> {
   bool _isSubmitting = false;
   String _selectedCategory = '기타'; // 카테고리 선택을 위한 상태 변수
   final List<String> _categories = ['스터디', '식사', '취미', '문화', '기타'];
+
+  // 썸네일 관련 변수
+  final TextEditingController _thumbnailTextController = TextEditingController();
+  File? _thumbnailImage;
+  final ImagePicker _picker = ImagePicker();
 
   // 최대 인원 선택 목록
   final List<int> _participantOptions = [3, 4];
@@ -114,6 +123,7 @@ class _CreateMeetupScreenState extends State<CreateMeetupScreen> {
     _titleController.dispose();
     _descriptionController.dispose();
     _locationController.dispose();
+    _thumbnailTextController.dispose();
     super.dispose();
   }
 
@@ -131,6 +141,7 @@ class _CreateMeetupScreenState extends State<CreateMeetupScreen> {
     // 사용자 닉네임 가져오기
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final nickname = authProvider.userData?['nickname'] ?? AppConstants.DEFAULT_HOST;
+    final nationality = authProvider.userData?['nationality'] ?? '';
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -197,12 +208,24 @@ class _CreateMeetupScreenState extends State<CreateMeetupScreen> {
                               color: Colors.grey,
                             ),
                           ),
-                          Text(
-                            nickname,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          Row(
+                            children: [
+                              Text(
+                                nickname,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              if (nationality.isNotEmpty) 
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 8.0),
+                                  child: CountryFlagCircle(
+                                    nationality: nationality,
+                                    size: 20,
+                                  ),
+                                ),
+                            ],
                           ),
                         ],
                       ),
@@ -281,6 +304,119 @@ class _CreateMeetupScreenState extends State<CreateMeetupScreen> {
                   ],
                 ),
                 const SizedBox(height: 24),
+
+                // 썸네일 설정
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '썸네일 설정',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[800],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    
+                    // 썸네일 텍스트 입력 필드
+                    TextFormField(
+                      controller: _thumbnailTextController,
+                      decoration: InputDecoration(
+                        labelText: '썸네일 텍스트 (선택사항)',
+                        hintText: '모임을 대표할 텍스트를 입력하세요',
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        contentPadding: const EdgeInsets.fromLTRB(16, 24, 16, 40), 
+                        counterText: '',
+                      ),
+                      maxLength: 30,
+                      maxLines: 2, 
+                    ),
+                    
+                    // 이미지 첨부 버튼
+                    Container(
+                      padding: const EdgeInsets.only(top: 4),
+                      transform: Matrix4.translationValues(0, -10, 0), // 위로 10픽셀 이동
+                      child: Row(
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              Icons.add_photo_alternate,
+                              color: Colors.blue.shade700,
+                              size: 24, 
+                            ),
+                            onPressed: () async {
+                              final XFile? image = await _picker.pickImage(
+                                source: ImageSource.gallery,
+                                maxWidth: 800,
+                                maxHeight: 800,
+                              );
+                              if (image != null) {
+                                setState(() {
+                                  _thumbnailImage = File(image.path);
+                                });
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('이미지가 선택되었습니다'),
+                                    duration: Duration(seconds: 1),
+                                  ),
+                                );
+                              }
+                            },
+                            tooltip: '이미지 첨부',
+                            padding: EdgeInsets.zero,
+                          ),
+                          const Text(
+                            '이미지 첨부',
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          // 선택된 이미지 표시
+                          if (_thumbnailImage != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade100,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.check_circle, size: 16, color: Colors.green),
+                                  const SizedBox(width: 4),
+                                  const Text(
+                                    '이미지 첨부됨',
+                                    style: TextStyle(fontSize: 12, color: Colors.black87),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.close, size: 16),
+                                    constraints: const BoxConstraints(),
+                                    padding: const EdgeInsets.only(left: 4),
+                                    onPressed: () {
+                                      setState(() {
+                                        _thumbnailImage = null;
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    
+                    // 아래쪽 공간 (버튼 아래)
+                    const SizedBox(height: 10),
+                  ],
+                ),
+                const SizedBox(height: 20),
 
                 // 모임 제목
                 Column(
@@ -562,6 +698,8 @@ class _CreateMeetupScreenState extends State<CreateMeetupScreen> {
                               maxParticipants: _maxParticipants,
                               date: selectedDate,
                               category: _selectedCategory, // 선택된 카테고리 전달
+                              thumbnailContent: _thumbnailTextController.text.trim(),
+                              thumbnailImage: _thumbnailImage, // 이미지 전달
                             );
 
                             if (success) {

@@ -15,7 +15,10 @@ class Meetup {
   final int maxParticipants;
   final int currentParticipants;
   final String host;
+  final String hostNationality;
   final String imageUrl;
+  final String thumbnailContent;
+  final String thumbnailImageUrl;
   final DateTime date;
   final String category;
 
@@ -28,7 +31,10 @@ class Meetup {
     required this.maxParticipants,
     required this.currentParticipants,
     required this.host,
+    this.hostNationality = '',
     required this.imageUrl,
+    this.thumbnailContent = '',
+    this.thumbnailImageUrl = '',
     required this.date,
     this.category = '기타',
   });
@@ -42,7 +48,10 @@ class Meetup {
     int? maxParticipants,
     int? currentParticipants,
     String? host,
+    String? hostNationality,
     String? imageUrl,
+    String? thumbnailContent,
+    String? thumbnailImageUrl,
     DateTime? date,
     String? category,
   }) {
@@ -55,7 +64,10 @@ class Meetup {
       maxParticipants: maxParticipants ?? this.maxParticipants,
       currentParticipants: currentParticipants ?? this.currentParticipants,
       host: host ?? this.host,
+      hostNationality: hostNationality ?? this.hostNationality,
       imageUrl: imageUrl ?? this.imageUrl,
+      thumbnailContent: thumbnailContent ?? this.thumbnailContent,
+      thumbnailImageUrl: thumbnailImageUrl ?? this.thumbnailImageUrl,
       date: date ?? this.date,
       category: category ?? this.category,
     );
