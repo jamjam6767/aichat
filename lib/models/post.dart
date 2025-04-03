@@ -2,21 +2,27 @@
 // 게시글 데이터 모델 정의
 // 게시글 관련 속성 및 메서드 포함(제목,내용,작성자,작성일,좋아요 수 등)
 // 데이터 포맷팅 메서드 제공(날짜, 미리보기 등)
+// 번역 기능 추가
 
 import 'package:intl/intl.dart';
+import '../providers/settings_provider.dart';
 
 class Post {
   final String id;
   final String title;
   final String content;
   final String author;
-  final String authorNationality; // 추가: 작성자 국적
+  final String authorNationality; // 작성자 국적
   final DateTime createdAt;
   final String userId;
   final int commentCount;
   final int likes;           // 좋아요 수
   final List<String> likedBy; // 좋아요 누른 사용자 ID 목록
   final List<String> imageUrls; // 이미지 URL 목록
+
+  // 캐시된 번역 결과
+  String? _translatedTitle;
+  String? _translatedContent;
 
   Post({
     required this.id,
@@ -35,7 +41,7 @@ class Post {
   // Firebase Storage URL 수정 정적 메서드
   static List<String> _fixImageUrls(List<String> urls) {
     if (urls.isEmpty) return urls;
-    
+
     return urls.map((url) {
       // URL에 alt=media 파라미터 추가
       if (url.contains('?') && !url.contains('alt=media')) {
@@ -84,6 +90,33 @@ class Post {
   // 현재 사용자가 이 게시글에 좋아요를 눌렀는지 확인
   bool isLikedByUser(String userId) {
     return likedBy.contains(userId);
+  }
+
+  // 제목 번역 메서드
+  Future<String> getTranslatedTitle(SettingsProvider settings) async {
+    if (!settings.autoTranslate) return title;
+    if (_translatedTitle != null) return _translatedTitle!;
+
+    _translatedTitle = await settings.translateText(title);
+    return _translatedTitle!;
+  }
+
+  // 본문 번역 메서드
+  Future<String> getTranslatedContent(SettingsProvider settings) async {
+    if (!settings.autoTranslate) return content;
+    if (_translatedContent != null) return _translatedContent!;
+
+    _translatedContent = await settings.translateText(content);
+    return _translatedContent!;
+  }
+
+  // 번역된 미리보기 내용
+  Future<String> getTranslatedPreviewContent(SettingsProvider settings) async {
+    final translatedContent = await getTranslatedContent(settings);
+    if (translatedContent.length <= 100) {
+      return translatedContent;
+    }
+    return '${translatedContent.substring(0, 100)}...';
   }
 
   // Post 객체 복제 메서드 (필요시 데이터 업데이트에 사용)

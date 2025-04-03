@@ -3,6 +3,7 @@
 //프로바이더 설정
 // 앱 테마 및 라우팅 설정
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
@@ -15,6 +16,7 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  debugDefaultTargetPlatformOverride = TargetPlatform.android;
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );

@@ -2,9 +2,10 @@
 // 댓글 데이터 모델 정의
 // 댓글 관련 속성 포함(내용,작성자,작서일 등)
 // Firestore데이터 변환 메서드 제공
-
+// 번역 기능 추가
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../providers/settings_provider.dart';
 
 class Comment {
   final String id;
@@ -14,6 +15,9 @@ class Comment {
   final String authorPhotoUrl;
   final String content;
   final DateTime createdAt;
+
+  // 캐시된 번역 결과
+  String? _translatedContent;
 
   Comment({
     required this.id,
@@ -68,5 +72,35 @@ class Comment {
       'content': content,
       'createdAt': FieldValue.serverTimestamp(),
     };
+  }
+
+  // 본문 번역 메서드
+  Future<String> getTranslatedContent(SettingsProvider settings) async {
+    if (!settings.autoTranslate) return content;
+    if (_translatedContent != null) return _translatedContent!;
+
+    _translatedContent = await settings.translateText(content);
+    return _translatedContent!;
+  }
+
+  // Comment 객체 복제 메서드
+  Comment copyWith({
+    String? id,
+    String? postId,
+    String? userId,
+    String? authorNickname,
+    String? authorPhotoUrl,
+    String? content,
+    DateTime? createdAt,
+  }) {
+    return Comment(
+      id: id ?? this.id,
+      postId: postId ?? this.postId,
+      userId: userId ?? this.userId,
+      authorNickname: authorNickname ?? this.authorNickname,
+      authorPhotoUrl: authorPhotoUrl ?? this.authorPhotoUrl,
+      content: content ?? this.content,
+      createdAt: createdAt ?? this.createdAt,
+    );
   }
 }

@@ -11,6 +11,8 @@ import '../widgets/country_flag_circle.dart';
 import 'create_post_screen.dart';
 import 'post_detail_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:provider/provider.dart';
+import '../providers/settings_provider.dart';
 
 class BoardScreen extends StatefulWidget {
   const BoardScreen({Key? key}) : super(key: key);
@@ -380,6 +382,7 @@ class _BoardScreenState extends State<BoardScreen> {
                             post.title.toLowerCase().contains(_searchQuery) ||
                             post.content.toLowerCase().contains(_searchQuery))
                         .toList();
+
                 if (posts.isEmpty) {
                   return Center(
                     child: Column(
@@ -436,6 +439,7 @@ class _BoardScreenState extends State<BoardScreen> {
                         child: InkWell(
                           borderRadius: BorderRadius.circular(12),
                           onTap: () async {
+
                             // 게시글 상세 화면으로 이동
                             final result = await Navigator.push<bool>(
                               context,
@@ -449,55 +453,74 @@ class _BoardScreenState extends State<BoardScreen> {
                               setState(() {}); // Stream이므로 자동으로 갱신됨
                             }
                           },
+
                           child: Padding(
                             padding: const EdgeInsets.all(12),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // 제목
-                                Text(
-                                  post.title,
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: -0.2,
-                                    color: Color(0xFF2C3E50), 
-                                  ),
+
+                                // 제목 - 이 부분을 수정
+                                Consumer<SettingsProvider>(
+                                  builder: (context, settings, child) {
+                                    return FutureBuilder<String>(
+                                      future: post.getTranslatedTitle(settings),
+                                      builder: (context, snapshot) {
+                                        if (snapshot.connectionState == ConnectionState.waiting) {
+                                          return Text(
+                                            post.title,
+                                            style: const TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: -0.2,
+                                              color: Color(0xFF2C3E50),
+                                            ),
+                                          );
+                                        }
+                                        return Text(
+                                          snapshot.data ?? post.title,
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: -0.2,
+                                            color: Color(0xFF2C3E50),
+                                          ),
+                                        );
+                                      },
+                                    );
+                                  },
                                 ),
 
                                 // 이미지 섹션
-                                if (post.imageUrls.isNotEmpty)
-                                  SizedBox(
-                                    height: 100,
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(top: 8.0),
-                                      child: ListView.builder(
-                                        scrollDirection: Axis.horizontal,
-                                        itemCount: post.imageUrls.length > 3 ? 3 : post.imageUrls.length,
-                                        itemBuilder: (context, index) {
-                                          return Container(
-                                            margin: const EdgeInsets.only(right: 8),
-                                            width: 100,
-                                            child: ClipRRect(
-                                              borderRadius: BorderRadius.circular(8),
-                                              child: Container(
-                                                decoration: BoxDecoration(
-                                                  border: Border.all(color: Colors.blue.shade100, width: 1),
-                                                ),
-                                                child: CachedNetworkImage(
-                                                  imageUrl: post.imageUrls[index],
-                                                  fit: BoxFit.cover,
-                                                  errorWidget: (context, url, error) =>
-                                                      Icon(Icons.broken_image),
-                                                  memCacheHeight: 200,
-                                                  memCacheWidth: 200,
-                                                ),
+                                if (post.content.isNotEmpty)
+                                  Consumer<SettingsProvider>(
+                                    builder: (context, settings, child) {
+                                      return FutureBuilder<String>(
+                                        future: post.getTranslatedPreviewContent(settings),
+                                        builder: (context, snapshot) {
+                                          if (snapshot.connectionState == ConnectionState.waiting) {
+                                            return Text(
+                                              post.getPreviewContent(),
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                height: 1.3,
                                               ),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                            );
+                                          }
+                                          return Text(
+                                            snapshot.data ?? post.getPreviewContent(),
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              height: 1.3,
                                             ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
                                           );
                                         },
-                                      ),
-                                    ),
+                                      );
+                                    },
                                   ),
                                 
                                 const SizedBox(height: 8),

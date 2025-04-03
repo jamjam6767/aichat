@@ -229,6 +229,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            // 언어 선택
             Row(
               children: [
                 const Icon(Icons.language),
@@ -249,11 +250,39 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                       value: 'en',
                       child: const Text('English'),
                     ),
+                    DropdownMenuItem(
+                      value: 'ja',
+                      child: const Text('日本語'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'zh',
+                      child: const Text('中文'),
+                    ),
                   ],
                   onChanged: (value) {
                     if (value != null) {
                       settingsProvider.setLocale(Locale(value));
                     }
+                  },
+                ),
+              ],
+            ),
+
+            // 자동 번역 전환 스위치 추가
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.translate),
+                const SizedBox(width: 16),
+                const Text(
+                  '자동 번역',
+                  style: TextStyle(fontSize: 16),
+                ),
+                const Spacer(),
+                Switch(
+                  value: settingsProvider.autoTranslate,
+                  onChanged: (value) {
+                    settingsProvider.setAutoTranslate(value);
                   },
                 ),
               ],
