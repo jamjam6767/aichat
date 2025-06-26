@@ -1,16 +1,18 @@
 # flutter_practice3
 
-A new Flutter project.
+🚧 **임시 저장소입니다.**
 
-## Getting Started
+이 저장소는 **AI 챗봇 기능을 Flutter 앱에 추가**하기 위한 실험적 프로젝트입니다.  
+기능 구현 테스트 및 예제 코드 공유 목적이며, 추후 통합 저장소로 병합될 수 있습니다.
 
-This project is a starting point for a Flutter application.
+---
 
-A few resources to get you started if this is your first Flutter project:
+## ✨ 목표 기능
+- AI 챗봇 인터페이스 구성
+- 사용자 질문 입력 및 응답 출력
+- API 연동 테스트 (예: ChatGPT, Gemini 등)
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+---
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 📌 참고
+- 본 저장소는 임시 성격으로 유지되며, 구조나 코드가 자주 변경될 수 있습니다.
